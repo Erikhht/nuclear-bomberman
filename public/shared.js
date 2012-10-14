@@ -9,7 +9,7 @@ var shared = {
     sv_update_tick:2, // Send an unpdate to the client every 2 ticks = 60 ms = 17 hz ( ~20 is ok)
 
     // Gameplay
-    gp_bomb_ttl_ms:1000,
+    gp_bomb_ttl_ms:1200,
     gp_flame_duration_ms:500,
     gp_power_up:{
         pu_bomb:.05,
@@ -26,7 +26,7 @@ var shared = {
     },
     gp_disease_duration:15000,
     gp_pu_skate_increase:.002,
-    gp_ini_bomb_power:3,
+    gp_ini_bomb_power:1,
     gp_ini_bomb_count:1000, // number of bomb available at the beginning of a game
     bombTTLTick:100, // bomb duration in game tick
     gp_ini_avatar_speed:.01, // bomberman speed in grid unity pe millisecond
@@ -109,17 +109,21 @@ var eat_power_up = {
         avatar.pu_trigger = true
     }
 }
+var directions = [-shared.mapwidth, 1, shared.mapwidth, -1];
+
 var can_walk = function (entity) {
     return entity === undefined || entity.type in eat_power_up;
 }
+
 shared.updateAvatar = function (t, avatar, world, command) {
     if (avatar.h >= 32)// When it is dead
         return;
     var entities = world.entities;
-    var vx = ((command.right > 0 ? command.right : 0) - (command.left > 0 ? command.left : 0)) * avatar.s;
+    var d = command.d;
+    var vx = ((command.right ? d : 0) - (command.left ? d : 0)) * avatar.s;
     vx = Math.max(vx, -.5);
     vx = Math.min(vx, .5);
-    var vy = ((command.down > 0 ? command.down : 0) - (command.up > 0 ? command.up : 0)) * avatar.s;
+    var vy = ((command.down ? d : 0) - (command.up ? d : 0)) * avatar.s;
     vy = Math.max(vy, -.5);
     vy = Math.min(vy, .5);
     if (avatar.pu_disease > t) {// when undefined this is false
@@ -137,7 +141,7 @@ shared.updateAvatar = function (t, avatar, world, command) {
         var fnct = eat_power_up[cell_entity.type];
         if (fnct) {
             world.destroyEntity(cell); //remove the power up
-            fnct(t,avatar);
+            fnct(t, avatar);
         }
     }
     // Bounce on an obstacle if any.
@@ -146,9 +150,20 @@ shared.updateAvatar = function (t, avatar, world, command) {
     var west = can_walk(entities[cell - 1]);
     var east = can_walk(entities[cell + 1]);
 
-    if (command.fire && cell_entity === undefined && avatar.rb > 0) {
-        avatar.rb--;
-        world.createEntity(cell, {type:"bomb", et:t + shared.gp_bomb_ttl_ms, p:avatar.p});
+    if (command.fire && avatar.rb > 0) {
+        if (cell_entity === undefined) {
+            avatar.rb--;
+            world.createEntity(cell, {type:"bomb", et:t + shared.gp_bomb_ttl_ms, p:avatar.p});
+        } else if (avatar.pu_spooge && cell_entity.type === "bomb" && command.fire === 1) {
+            var c = cell;
+            var d = directions[avatar.h % 4];
+            while (avatar.rb > 0) {
+                c += d;
+                if (entities[c])break;
+                avatar.rb--;
+                world.createEntity(c, {type:"bomb", et:t + shared.gp_bomb_ttl_ms, p:avatar.p});
+            }
+        }
     }
     // Slide on the wall when possible
     if (dcx != 0 || (dcy == 0 && avatar.h & 1)) {

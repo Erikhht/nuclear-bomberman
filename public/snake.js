@@ -235,9 +235,10 @@ function startup() {
             var somethingHappened = false;
             var event = {d:end - start};
             for (var k in keyListners) {
-                if (keyListners[k].isPressed) {
+                var press_time = keyListners[k].isPressed;
+                if (press_time) {
                     somethingHappened = true;
-                    event[k] = event.d;
+                    event[k] = 1+(press_time<start);
                 }
             }
             // Stream the inputs to the server
@@ -263,22 +264,22 @@ function startup() {
         window.addEventListener('keyup', function (event) {
             var key = keys[event.keyCode];
             if (key) {
-                key.isPressed = false;
-                event.returnValue = false;
+                key.isPressed = 0;
+                event.preventDefault();
             }
         }, true);
         window.addEventListener('keydown', function (event) {
             var key = keys[event.keyCode];
             if (key) {
-                key.isPressed = true;
-                event.returnValue = false;
+                key.isPressed = Date.now();
+                event.preventDefault();
             }
         }, true);
         this.clear = function () {
             keys = {}
         };
         this.listen = function (keyCode) {
-            return keys[keyCode] = (keys[keyCode] || {isPressed:false});
+            return keys[keyCode] = (keys[keyCode] || {isPressed:0});
         }
         Object.freeze(this);
     }
@@ -724,9 +725,9 @@ function startup() {
                 pu_grab:offset("power grab", -1,2),
                 blasto:offset("flame center green", 0, 0),
                 blastn:offset("flame midnorth green", -2, 0),
-                blastnt:offset("flame tipnorth green", -2, 0),
-                blaste:offset("flame mideast green", 0, -5),
-                blastet:offset("flame tipeast green", 0, -5),
+                blastnt:offset("flame tipnorth green", -3, -1),
+                blaste:offset("flame mideast green", 0, -7),
+                blastet:offset("flame tipeast green",-2, -6),
                 blasts:offset("flame midsouth green", -2, 0),
                 blastst:offset("flame tipsouth green", -2, 0),
                 blastw:offset("flame midwest green", 0, -5),
