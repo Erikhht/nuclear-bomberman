@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" width="20" height="16" tilewidth="40" tileheight="36">
+ <tileset firstgid="1" name="tiles" tilewidth="40" tileheight="36">
+  <image source="tiles.png" width="200" height="36"/>
+  <tile id="0">
+   <properties>
+    <property name="type" value="spawn"/>
+   </properties>
+  </tile>
+  <tile id="1">
+   <properties>
+    <property name="type" value="wall"/>
+   </properties>
+  </tile>
+  <tile id="2">
+   <properties>
+    <property name="type" value="wall"/>
+   </properties>
+  </tile>
+  <tile id="3">
+   <properties>
+    <property name="type" value="crate"/>
+   </properties>
+  </tile>
+  <tile id="4">
+   <properties>
+    <property name="type" value="crate"/>
+   </properties>
+  </tile>
+ </tileset>
+ <layer name="warehouse" width="20" height="16" visible="0">
+  <data encoding="base64" compression="zlib">
+   eJztk8EKwDAIQ530/79510dQW5m7VfDSmBgJdTPz4Z4q6qlutSebpd4DfKGJu2Am3OjejFPtIvdEj3NdPeVUelp/5pH5O8kj8seMunl087157P3x7ev/mOwXOWwByA==
+  </data>
+ </layer>
+ <layer name="funny" width="20" height="16">
+  <data encoding="base64" compression="zlib">
+   eJxjYmBgYKIyZsGB8cnhUo+sBx0wYRHDBdDNwwaoYR4jCeYhq6WX+4gBxMQvPnuRMaXuG+zmEQuQzcOFcQFscqS4jxGNz4RFjtL0Qsh9pOZ7fOUBNTEAfYQByw==
+  </data>
+ </layer>
+</map>
