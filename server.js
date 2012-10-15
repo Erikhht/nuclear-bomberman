@@ -3,7 +3,6 @@
 var settings = {
     maxAvatar:10,
     session:{ key:'sid', secret:'p/01>Hq#*[JL-JM'},
-    disconnectTimeout:30 * 1000,
     defaultNames:{slot0:"wilson", slot1:"alic", slot2:"bradley", slot3:"morten", slot4:"melanie", slot5:"ozzie", slot6:"nigel", slot7:"dudley", slot8:"paula", slot9:"adam"}
 };
 
@@ -56,29 +55,25 @@ function clone(obj) {
     throw new Error("Unable to copy obj! Its type isn't supported.");
 }
 
-var state = {
-    t:undefined,
-    state:'prepare',
-    slots:{
-        slot0:{}, slot1:{}, slot2:{}, slot3:{}, slot4:{},
-        slot5:{}, slot6:{}, slot7:{}, slot8:{}, slot9:{}
-    },
-    acks:{},
-    mapIndex:1,
-    entities:{},
-    temporaryEntities:[]
-};
-
-var predictionSystem = {
-    createEntity:function (name, value) {
-        state.entities[name] = value;
-    }, isFirstTimePredicted:function () {
-        return true;
-    }, destroyEntity:function (key) {
-        delete state.entities[key];
-    }, entities:state.entities
-};
-
+/**
+ * This is the game state
+ */
+var state;
+function resetState() {
+    state = {
+        t:undefined,
+        state:'prepare',
+        slots:{
+            slot0:{}, slot1:{}, slot2:{}, slot3:{}, slot4:{},
+            slot5:{}, slot6:{}, slot7:{}, slot8:{}, slot9:{}
+        },
+        acks:{},
+        mapIndex:1,
+        entities:{},
+        temporaryEntities:[]
+    }
+}
+resetState();
 
 var tick = undefined;
 function createTicker() {
@@ -86,18 +81,18 @@ function createTicker() {
     var tickCount = 0;
     //World is a state decorated with functions
     var world = {
-        createEntity:function (key,entity) {
-            state.entities[key]=entity;
-        },destroyEntity:function (key) {
+        createEntity:function (key, entity) {
+            state.entities[key] = entity;
+        }, destroyEntity:function (key) {
             delete state.entities[key];
         }, createTemporaryEntity:function (entity) {
             state.temporaryEntities.push(entity);
-        }, burn:function(cell){
-            if(this.flame[cell]>=state.t) return false; // already burnt this frame
-            this.flame[cell]=state.t;
+        }, burn:function (cell) {
+            if (this.flame[cell] >= state.t) return false; // already burnt this frame
+            this.flame[cell] = state.t;
             return true;
-        },isburning:function(cell){
-            return this.flame[cell]>=state.t;
+        }, isburning:function (cell) {
+            return this.flame[cell] >= state.t;
         },
         entities:state.entities,
         flame:new Array(maps.width * maps.height)
@@ -152,8 +147,9 @@ var playerCleaner = function () {
             timeouts[sid] = undefined;
         },
         notifyDisconnect:function (sid) {
-            console.log("[playercleaner] sid %s disconnection detected, wait %d ms before players disqualification", sid, settings.disconnectTimeout);
+            console.log("[playercleaner] sid %s disconnection detected, wait %d ms before players disqualification", sid, settings.sv_disconnect_timeout);
             timeouts[sid] = setTimeout(function () {
+                // Clear every slot of this sid
                 for (var slotName in state.slots) {
                     var slot = state.slots[slotName];
                     if (slot.owner === sid) {
@@ -161,8 +157,12 @@ var playerCleaner = function () {
                     }
                 }
                 console.log("[playercleaner] all players of sid %s are disqualified", sid);
+                if (shared.masterSid(state.slots) === undefined){
+                    console.log("[playercleaner] all players disconnected, reset the game");
+                    resetState();
+                }
                 sockets.emit('state', state); // tell the others that sid is disqualified
-            }, settings.disconnectTimeout);
+            }, shared.sv_disconnect_timeout);
         }
     };
 }();
@@ -258,7 +258,7 @@ sockets.on('connection', function (socket) {
                 type:"avatar",
                 x:spawnCell % maps.width,
                 y:Math.floor(spawnCell / maps.width),
-                h:0,//facing direction
+                h:0, //facing direction
                 rb:shared.gp_ini_bomb_count, //number of bomb
                 p:shared.gp_ini_bomb_power, //bomb power
                 s:shared.gp_ini_avatar_speed //speed
@@ -268,21 +268,30 @@ sockets.on('connection', function (socket) {
         sockets.emit('state', state);
     });
 
+
+    var predictionSystem = {
+        createEntity:function (name, value) {
+            state.entities[name] = value;
+        }, isFirstTimePredicted:function () {
+            return true;
+        }, destroyEntity:function (key) {
+            delete state.entities[key];
+        }, entities:state.entities
+    };
+
     socket.on('player_cmd', function (cmd) {
         var slotName = cmd.slot;
         if (state.state === 'play' && state.slots[slotName].owner === sid) {
-            shared.updateAvatar(state.t, state.entities[slotName], predictionSystem, cmd);
+            shared.updateAvatar(state.t, slotName, state.entities[slotName], predictionSystem, cmd);
             state.acks[slotName] = cmd.id;
         } else {
-            sockets.emit('state', state);
+            socket.emit('state', state); //Resync the client
         }
     });
 
-
     socket.emit('set_session', sid);
     socket.emit('state', state);
-})
-;
+});
 
 
 

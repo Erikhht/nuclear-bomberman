@@ -1,33 +1,34 @@
 "use strict";
 var shared = {
     // Multiplayer
+    cl_draw_frame:false,
     cl_predict:true, // Client side prediction enable/disable
     cl_predict_respawn:true,
     cl_interp:true, // Client side interpolation enable/disable
     cl_interp_delay_ms:200, // Amount of ms the time is shifted back when the client continuously interpolate object position
     sv_tick_period_ms:30, // Discrete simulation period, 30 ms = 33hz ( ~60 is ok)
     sv_update_tick:2, // Send an unpdate to the client every 2 ticks = 60 ms = 17 hz ( ~20 is ok)
-
+    sv_disconnect_timeout:30 * 1000,
     // Gameplay
     gp_bomb_ttl_ms:1200,
     gp_flame_duration_ms:500,
     gp_power_up:{
         pu_bomb:.05,
-        pu_flame:.05,
-        pu_kicker:.05,
-        pu_disease:.05,
-        pu_punch:.05,
-        pu_skate:.05,
-        pu_jelly:.05,
-        pu_grab:.05,
-        pu_spooge:.05,
-        pu_goldflame:.05,
-        pu_trigger:.05
+        pu_flame:.04,
+        pu_skate:.03,
+        pu_disease:.02,
+        pu_spooge:.02,
+        pu_goldflame:.03,
+        pu_kicker:.00,
+        pu_punch:.00,
+        pu_jelly:.00,
+        pu_grab:.00,
+        pu_trigger:.00
     },
     gp_disease_duration:15000,
     gp_pu_skate_increase:.002,
     gp_ini_bomb_power:1,
-    gp_ini_bomb_count:1000, // number of bomb available at the beginning of a game
+    gp_ini_bomb_count:2, // number of bomb available at the beginning of a game
     bombTTLTick:100, // bomb duration in game tick
     gp_ini_avatar_speed:.01, // bomberman speed in grid unity pe millisecond
 
@@ -35,7 +36,7 @@ var shared = {
     mapwidth:20,
     tilewidth:40,
     tileheight:36,
-    frameRateMs:.03 // annimation frame per millisecond
+    frameRateMs:.02 // annimation frame per millisecond
 };
 try {
     module.exports = shared;
@@ -68,6 +69,11 @@ shared.avatarKeyMap = [
     {up:KeyEvent.DOM_VK_I, down:KeyEvent.DOM_VK_K, left:KeyEvent.DOM_VK_J, right:KeyEvent.DOM_VK_L}
 ];
 
+/**
+ * Returns the master session id or undefined if there is no slot allocated
+ * @param slots
+ * @return {*}
+ */
 shared.masterSid = function (slots) {
     return slots.slot0.owner || slots.slot1.owner || slots.slot2.owner || slots.slot3.owner || slots.slot4.owner
         || slots.slot5.owner || slots.slot6.owner || slots.slot7.owner || slots.slot8.owner || slots.slot9.owner;
@@ -115,7 +121,7 @@ var can_walk = function (entity) {
     return entity === undefined || entity.type in eat_power_up;
 }
 
-shared.updateAvatar = function (t, avatar, world, command) {
+shared.updateAvatar = function (t, slotName, avatar, world, command) {
     if (avatar.h >= 32)// When it is dead
         return;
     var entities = world.entities;
@@ -153,7 +159,7 @@ shared.updateAvatar = function (t, avatar, world, command) {
     if (command.fire && avatar.rb > 0) {
         if (cell_entity === undefined) {
             avatar.rb--;
-            world.createEntity(cell, {type:"bomb", et:t + shared.gp_bomb_ttl_ms, p:avatar.p});
+            world.createEntity(cell, {type:"bomb", et:t + shared.gp_bomb_ttl_ms, p:avatar.p,own:slotName});
         } else if (avatar.pu_spooge && cell_entity.type === "bomb" && command.fire === 1) {
             var c = cell;
             var d = directions[avatar.h % 4];
@@ -161,7 +167,7 @@ shared.updateAvatar = function (t, avatar, world, command) {
                 c += d;
                 if (entities[c])break;
                 avatar.rb--;
-                world.createEntity(c, {type:"bomb", et:t + shared.gp_bomb_ttl_ms, p:avatar.p});
+                world.createEntity(c, {type:"bomb", et:t + shared.gp_bomb_ttl_ms, p:avatar.p,own:slotName});
             }
         }
     }
@@ -235,6 +241,8 @@ shared.simulateOnTick = {
     bomb:function (t, cell, entity, world) {
         function blastBomb(c) {
             var bomb = world.entities[c];
+            var avatar=world.entities[bomb.own];
+            if(avatar)avatar.rb++;
             world.destroyEntity(c); // Remove the bomb
             world.createTemporaryEntity({type:'te_cl', a:"blasto", c:c, ttl:shared.gp_flame_duration_ms}); // Create blast center fx
             world.burn(c); // Burn the cell

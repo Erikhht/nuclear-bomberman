@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.0" orientation="orthogonal" width="20" height="16" tilewidth="40" tileheight="36">
  <tileset firstgid="1" name="tiles" tilewidth="40" tileheight="36">
-  <image source="tiles.png" width="200" height="36"/>
+  <image source="tiles.png" width="200" height="144"/>
   <tile id="0">
    <properties>
     <property name="type" value="spawn"/>
@@ -27,6 +27,61 @@
     <property name="type" value="crate"/>
    </properties>
   </tile>
+  <tile id="5">
+   <properties>
+    <property name="type" value="pu_disease"/>
+   </properties>
+  </tile>
+  <tile id="6">
+   <properties>
+    <property name="type" value="pu_flame"/>
+   </properties>
+  </tile>
+  <tile id="7">
+   <properties>
+    <property name="type" value="pu_skate"/>
+   </properties>
+  </tile>
+  <tile id="8">
+   <properties>
+    <property name="type" value="pu_spooge"/>
+   </properties>
+  </tile>
+  <tile id="9">
+   <properties>
+    <property name="type" value="pu_disease2"/>
+   </properties>
+  </tile>
+  <tile id="10">
+   <properties>
+    <property name="type" value="pu_kicker"/>
+   </properties>
+  </tile>
+  <tile id="11">
+   <properties>
+    <property name="type" value="pu_punch"/>
+   </properties>
+  </tile>
+  <tile id="13">
+   <properties>
+    <property name="type" value="pu_goldflame"/>
+   </properties>
+  </tile>
+  <tile id="14">
+   <properties>
+    <property name="type" value="pu_trigger"/>
+   </properties>
+  </tile>
+  <tile id="16">
+   <properties>
+    <property name="type" value="pu_jelly"/>
+   </properties>
+  </tile>
+  <tile id="17">
+   <properties>
+    <property name="type" value="pu_grab"/>
+   </properties>
+  </tile>
  </tileset>
  <layer name="warehouse" width="20" height="16" visible="0">
   <data encoding="base64" compression="zlib">
@@ -35,7 +90,7 @@
  </layer>
  <layer name="funny" width="20" height="16">
   <data encoding="base64" compression="zlib">
-   eJxjYmBgYKIyZsGB8cnhUo+sBx0wYRHDBdDNwwaoYR4jCeYhq6WX+4gBxMQvPnuRMaXuG+zmEQuQzcOFcQFscqS4jxGNz4RFjtL0Qsh9pOZ7fOUBNTEAfYQByw==
+   eJzNVEEKACAIU+na/7/bVWQTJYkGO+R0LKRMRGyYizDTWL+fiTBQY4h+CBN+2vDzva/y7cJsZb/ML+6wmw/1/exXhfdjZEBaJ5+GswHt5r6VfN13n/0HkzzJFAHl
   </data>
  </layer>
 </map>

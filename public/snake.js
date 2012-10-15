@@ -84,11 +84,14 @@ function startup() {
             if (state_1 === undefined)
                 return entities_c;
             var entities_0 = state_0.entities, entities_1 = state_1.entities;
-            for (var key in state_0.entities) {
+            for (var key in entities_0) {
                 var entity_0 = entities_0[key], entity_1 = entities_1[key];
                 if (entity_1 === undefined) continue; // disapeared! leave unchanged
                 var func = interpolateFunc[entity_0.type]
-                if (func) entities_c[key] = interpolateFunc[entity_0.type](entity_0, entity_1);
+                if (func){
+                    var newValue = interpolateFunc[entity_0.type](entity_0, entity_1);
+                    if(newValue) entities_c[key] = newValue;
+                }
             }
             return entities_c;
         }
@@ -139,8 +142,8 @@ function startup() {
         this.isFirstTimePredicted = function () {
             return !(this.acks[curSlotName] >= curCommand.id);
         }
-        this.destroyEntity=function(name) {
-            this.createEntity(name,undefined);
+        this.destroyEntity = function (name) {
+            this.createEntity(name, undefined);
         }
 
         this.spawnTemporaryEntities = function (roundTime, newTemporaryEntities) {
@@ -169,7 +172,7 @@ function startup() {
             if (shared.cl_predict_respawn) {
                 for (var key in predictedEntities) {
                     var elem = predictedEntities[key];
-                    if (elem.id <= state.acks[elem.slot])
+                    if (elem.id <= sharedState.acks[elem.slot])
                         this.entities[elem.name] = elem.value;
                 }
             }
@@ -177,12 +180,12 @@ function startup() {
             if (shared.cl_predict) {
                 curSlotName = player.slot;
                 var commandQueue = player.commandQueue;
-                var avatar = this.entities[curSlotName] = shared.clone(state.entities[curSlotName]);
-                var t = state.t;
+                var avatar = this.entities[curSlotName] = shared.clone(sharedState.entities[curSlotName]);
+                var t = sharedState.t;
                 for (var idx = commandQueue.firstPending; idx < commandQueue.length; idx++) {
                     curCommand = commandQueue[idx];
                     t += curCommand.d;
-                    shared.updateAvatar(t, avatar, this, curCommand);
+                    shared.updateAvatar(t, curSlotName, avatar, this, curCommand);
                 }
                 if (curCommand) predictionAcks[curSlotName] = curCommand.id;
             }
@@ -238,7 +241,7 @@ function startup() {
                 var press_time = keyListners[k].isPressed;
                 if (press_time) {
                     somethingHappened = true;
-                    event[k] = 1+(press_time<start);
+                    event[k] = 1 + (press_time < start);
                 }
             }
             // Stream the inputs to the server
@@ -291,10 +294,11 @@ function startup() {
     var animationHandler = null;
     var sid; // Http session identifier of the client-server
     var maps; // Tiled JSON file
-    var state = {}; // All the game state : shared with the server
+
+    var sharedState = {}; // All the game state : shared with the server
+    var localState = undefined;
 
     var lastFrameTime = undefined;
-    var localState = undefined;
     var keyboard = new Keyboard();
     var animations;
     var tiles = $('<img src="tiles.png"/>')[0];
@@ -320,7 +324,7 @@ function startup() {
     function paintTiles(context, drawnSet) {
         drawnSet = drawnSet || {wall:true, spawn:true, crate:true, undefined:true};
         //Find the map array definition
-        var map = maps.layers[state.mapIndex];
+        var map = maps.layers[sharedState.mapIndex];
         var p = 0;
         var ymax = maps.height * maps.tileheight;
         var xmax = maps.width * maps.tilewidth;
@@ -382,13 +386,15 @@ function startup() {
         pu_grab:draw_cell_content,
         sprite:function (context, frame, x, y) {
             context.drawImage(sprites, frame.x, frame.y, frame.w, frame.h, x + frame.xo, y + frame.yo, frame.w, frame.h);
-            context.beginPath();
-            context.moveTo(x - 5, y);
-            context.lineTo(x + 5, y);
-            context.moveTo(x, y - 5);
-            context.lineTo(x, y + 5);
-            context.rect(x + frame.xo, y + frame.yo, frame.w, frame.h);
-            context.stroke();
+            if (shared.cl_draw_frame) {
+                context.beginPath();
+                context.moveTo(x - 5, y);
+                context.lineTo(x + 5, y);
+                context.moveTo(x, y - 5);
+                context.lineTo(x, y + 5);
+                context.rect(x + frame.xo, y + frame.yo, frame.w, frame.h);
+                context.stroke();
+            }
         },
         te_cl:function (clientRoundTime, gfx, cell, entity) {
             cell = entity.c;
@@ -403,8 +409,8 @@ function startup() {
             var x = (cell % maps.width + xCenter) * maps.tilewidth;
             var y = (Math.floor(cell / maps.width) + yCenter) * maps.tileheight;
             var frames = animations[entity.a];
-            var idx = Math.floor((clientRoundTime - entity.t0)* shared.frameRateMs);
-            if(idx<frames.length) // Disapear after the first animation
+            var idx = Math.floor((clientRoundTime - entity.t0) * shared.frameRateMs);
+            if (idx < frames.length) // Disapear after the first animation
                 this.sprite(gfx.objects, frames[idx], x, y);
         }
     }
@@ -442,13 +448,14 @@ function startup() {
         // Prepare next call
         lastFrameTime = curFrameTime;
 
-        if (state.state === "play")
+        if (sharedState.state === "play")
             window.requestAnimationFrame(renderFrame);
     }
 
     var onState = {
         play:{
             enter:function (prevState, newState) {
+                updatePlayerSlots();
                 localState = {
                     players:[],
                     snapshots:new Interpolator(),
@@ -470,8 +477,8 @@ function startup() {
 
                 // Create event queue and keyboard listening state for owned slots
                 var playerNumber = 0;
-                for (var s in state.slots) {
-                    if (state.slots[s].owner === sid) {
+                for (var s in sharedState.slots) {
+                    if (sharedState.slots[s].owner === sid) {
                         localState.players.push(new Player(s, shared.avatarKeyMap[playerNumber++]));
                     }
                 }
@@ -493,31 +500,13 @@ function startup() {
             enter:function (prevState, newState) {
             },
             update:function (prevState, newState) {
-                if (prevState.mapIndex !== state.mapIndex) {
-                    $("#mapselect").val(state.mapIndex);
+                if (prevState.mapIndex !== sharedState.mapIndex) {
+                    $("#mapselect").val(sharedState.mapIndex);
                     repaintPreview();
                 }
 
-                $(".board").find("input, select").attr("disabled", shared.masterSid(state.slots) !== sid);
-
-                // Update player slot state and name from the server inputs.
-                $("ol.slots").children().each(function (index) {
-                    var requestForcusAndSelect = false;
-                    var slot = state.slots[$(this).attr("id")];
-                    if (slot.owner === undefined) {
-                        $(this).attr("class", "free");
-                    } else if (slot.owner === sid) {
-                        requestForcusAndSelect = $(this).attr("class") != "own";
-                        $(this).attr("class", "own");
-                    } else {
-                        $(this).attr("class", "other");
-                    }
-                    var inputElement = $(this).find("input");
-                    inputElement.attr("value", slot.name);
-                    if (requestForcusAndSelect)
-                        inputElement.focus().select();
-                    $(this).find("div.ifother").text(slot.name);
-                });
+                $(".board").find("input, select").attr("disabled", shared.masterSid(sharedState.slots) !== sid);
+                updatePlayerSlots();
             },
             exit:function (prevState, newState) {
             }
@@ -528,9 +517,30 @@ function startup() {
         }
     };
 
+    function updatePlayerSlots() {
+        // Update player slot state and name from the server inputs.
+        $("ol.slots").children().each(function (index) {
+            var requestForcusAndSelect = false;
+            var slot = sharedState.slots[$(this).attr("id")];
+            if (slot.owner === undefined) {
+                $(this).attr("class", "free");
+            } else if (slot.owner === sid) {
+                requestForcusAndSelect = $(this).attr("class") != "own";
+                $(this).attr("class", "own");
+            } else {
+                $(this).attr("class", "other");
+            }
+            var inputElement = $(this).find("input");
+            inputElement.attr("value", slot.name);
+            if (requestForcusAndSelect)
+                inputElement.focus().select();
+            $(this).find("div.ifother").text(slot.name);
+        });
+    }
+
     function repaintPreview() {
         // The load is incomplete fortunately, this method is called on state update and map load
-        if (maps === undefined || state.mapIndex === undefined)
+        if (maps === undefined || sharedState.mapIndex === undefined)
             return;
         var canvas = $("#preview")[0];
         var context = canvas.getContext('2d');
@@ -575,14 +585,14 @@ function startup() {
     });
 
     socket.on("state", function (newState) {
-        var prevState = state;
-        state = newState;
-        if (prevState.state !== state.state) {
-            $(".outer").children().attr("class", state.state);
-            onState[prevState.state].exit(prevState, state);
-            onState[state.state].enter(prevState, state);
+        var prevState = sharedState;
+        sharedState = newState;
+        if (prevState.state !== sharedState.state) {
+            $(".outer").children().attr("class", sharedState.state);
+            onState[prevState.state].exit(prevState, sharedState);
+            onState[sharedState.state].enter(prevState, sharedState);
         }
-        onState[state.state].update(prevState, state);
+        onState[sharedState.state].update(prevState, sharedState);
     });
 
     $("#websocketDown").dialog(
@@ -618,8 +628,8 @@ function startup() {
 
 // When the map is changed, the preview is refreshed
     $("#mapselect").change(function () {
-        state.mapIndex = $(this).val();
-        socket.emit("set_map", {mapIndex:state.mapIndex});
+        sharedState.mapIndex = $(this).val();
+        socket.emit("set_map", {mapIndex:sharedState.mapIndex});
         repaintPreview();
     });
 
@@ -710,24 +720,24 @@ function startup() {
                 54:data["die green 23"].frames,
                 55:data["die green 24"].frames,
                 bomb:data["bomb regular green"].frames,
-                crate:offset("tile 5 brick",-1,2),
-                crateblast:offset("flame brick 5",-1,2),
-                pu_bomb:offset("power bomb", -1,2),
-                pu_flame:offset("power flame", -1,2),
-                pu_kicker:offset("power kicker", -1,2),
-                pu_disease:offset("power disease", -1,2),
-                pu_punch:offset("power punch", -1,2),
-                pu_skate:offset("power skate", -1,2),
-                pu_jelly:offset("power jelly", -1,2),
-                pu_spooge:offset("power spooge", -1,2),
-                pu_trigger:offset("power trigger", -1,2),
-                pu_goldflame:offset("power goldflame", -1,2),
-                pu_grab:offset("power grab", -1,2),
+                crate:offset("tile 5 brick", -1, 2),
+                crateblast:offset("flame brick 5", -1, 2),
+                pu_bomb:offset("power bomb", 0, 2),
+                pu_flame:offset("power flame", 0, 2),
+                pu_kicker:offset("power kicker", 0, 2),
+                pu_disease:offset("power disease", 0, 2),
+                pu_punch:offset("power punch", 0, 2),
+                pu_skate:offset("power skate", 0, 2),
+                pu_jelly:offset("power jelly", 0, 2),
+                pu_spooge:offset("power spooge", 0, 2),
+                pu_trigger:offset("power trigger", 0, 2),
+                pu_goldflame:offset("power goldflame", 0, 2),
+                pu_grab:offset("power grab", 0, 2),
                 blasto:offset("flame center green", 0, 0),
                 blastn:offset("flame midnorth green", -2, 0),
                 blastnt:offset("flame tipnorth green", -3, -1),
                 blaste:offset("flame mideast green", 0, -7),
-                blastet:offset("flame tipeast green",-2, -6),
+                blastet:offset("flame tipeast green", -2, -6),
                 blasts:offset("flame midsouth green", -2, 0),
                 blastst:offset("flame tipsouth green", -2, 0),
                 blastw:offset("flame midwest green", 0, -5),
