@@ -88,9 +88,9 @@ function startup() {
                 var entity_0 = entities_0[key], entity_1 = entities_1[key];
                 if (entity_1 === undefined) continue; // disapeared! leave unchanged
                 var func = interpolateFunc[entity_0.type]
-                if (func){
+                if (func) {
                     var newValue = interpolateFunc[entity_0.type](entity_0, entity_1);
-                    if(newValue) entities_c[key] = newValue;
+                    if (newValue) entities_c[key] = newValue;
                 }
             }
             return entities_c;
@@ -301,8 +301,30 @@ function startup() {
     var lastFrameTime = undefined;
     var keyboard = new Keyboard();
     var animations;
+
     var tiles = $('<img src="tiles.png"/>')[0];
     var sprites = $('<img src="sprites.png"/>')[0];
+    var csprites = {};
+    csprites.slot0 = csprites[undefined]=sprites;//green
+    Pixastic.process(sprites, "hsl", {hue:120, saturation:0, lightness:0}, function (newImg) {
+        csprites.slot1 = newImg
+    });//blue
+    Pixastic.process(sprites, "hsl", {hue:180, saturation:0, lightness:0}, function (newImg) {
+        csprites.slot2 = newImg
+    });//purple
+    Pixastic.process(sprites, "hsl", {hue:-120, saturation:0, lightness:0}, function (newImg) {
+        csprites.slot3 = newImg
+    });//red
+    Pixastic.process(sprites, "hsl", {hue:-60, saturation:0, lightness:0}, function (newImg) {
+        csprites.slot4 = newImg
+    });//yellow
+    Pixastic.process(sprites, "hsl", {hue:60, saturation:0, lightness:0}, function (newImg) {
+        csprites.slot5 = newImg
+    });//cyan
+    Pixastic.process(sprites, "hsl", {hue:0, saturation:-100, lightness:0}, function (newImg) {
+        csprites.slot6 = newImg
+    });//grey
+
 
     var gfx = function () {
         var contextFrom = function (elementSelector) {
@@ -340,7 +362,6 @@ function startup() {
             }
     }
 
-
     var yCenter = .9;
     var xCenter = .5;
 
@@ -349,10 +370,10 @@ function startup() {
         var y = (Math.floor(cell / maps.width) + yCenter) * maps.tileheight;
         var frames = animations[entity.type];
         var idx = Math.floor((clientRoundTime * shared.frameRateMs) % frames.length);
-        this.sprite(gfx.objects, frames[idx], x, y);
+        this.sprite(sprites, gfx.objects, frames[idx], x, y);
     }
     var draw = {
-        avatar:function (clientRoundTime, gfx, cell, avatar) {
+        avatar:function (clientRoundTime, gfx, slotName, avatar) {
             var frame, frames = animations[avatar.h];
             if (avatar.h >= 32) {
                 var frameIdx = Math.floor((clientRoundTime - avatar.t0) * shared.frameRateMs);
@@ -365,13 +386,17 @@ function startup() {
             var x = (avatar.x + xCenter) * maps.tilewidth;
             var y = (avatar.y + yCenter) * maps.tileheight;
             var ctx = gfx.avatars;
-            this.sprite(ctx, frame, x, y);
-            ctx.font = "20pt Arial";
-            // ctx.fillText(JSON.stringify(avatar), 20, 20);
+            this.sprite(csprites[slotName], ctx, frame, x, y);
         },
         wall:function () {
         },
-        bomb:draw_cell_content,
+        bomb:function (clientRoundTime, gfx, cell, entity) {
+            var x = (cell % maps.width + xCenter) * maps.tilewidth;
+            var y = (Math.floor(cell / maps.width) + yCenter) * maps.tileheight;
+            var frames = animations[entity.type];
+            var idx = Math.floor((clientRoundTime * shared.frameRateMs) % frames.length);
+            this.sprite(csprites[entity.own], gfx.objects, frames[idx], x, y);
+        },
         crate:draw_cell_content,
         pu_bomb:draw_cell_content,
         pu_flame:draw_cell_content,
@@ -384,8 +409,8 @@ function startup() {
         pu_spooge:draw_cell_content,
         pu_goldflame:draw_cell_content,
         pu_grab:draw_cell_content,
-        sprite:function (context, frame, x, y) {
-            context.drawImage(sprites, frame.x, frame.y, frame.w, frame.h, x + frame.xo, y + frame.yo, frame.w, frame.h);
+        sprite:function (spriteSheet, context, frame, x, y) {
+            context.drawImage(spriteSheet, frame.x, frame.y, frame.w, frame.h, x + frame.xo, y + frame.yo, frame.w, frame.h);
             if (shared.cl_draw_frame) {
                 context.beginPath();
                 context.moveTo(x - 5, y);
@@ -402,7 +427,7 @@ function startup() {
             var y = (Math.floor(cell / maps.width) + yCenter) * maps.tileheight;
             var frames = animations[entity.a];
             var idx = Math.floor((clientRoundTime * shared.frameRateMs) % frames.length);
-            this.sprite(gfx.objects, frames[idx], x, y);
+            this.sprite(csprites[entity.own], gfx.objects, frames[idx], x, y);
         },
         te_co:function (clientRoundTime, gfx, cell, entity) {
             cell = entity.c;
@@ -410,8 +435,8 @@ function startup() {
             var y = (Math.floor(cell / maps.width) + yCenter) * maps.tileheight;
             var frames = animations[entity.a];
             var idx = Math.floor((clientRoundTime - entity.t0) * shared.frameRateMs);
-            if (idx < frames.length) // Disapear after the first animation
-                this.sprite(gfx.objects, frames[idx], x, y);
+            if (idx >= frames.length) return; // Disapear after the first animation
+            this.sprite(csprites[entity.own], gfx.objects, frames[idx], x, y);
         }
     }
 

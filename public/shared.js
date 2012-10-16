@@ -18,7 +18,7 @@ var shared = {
         pu_skate:.03,
         pu_disease:.02,
         pu_spooge:.02,
-        pu_goldflame:.03,
+        pu_goldflame:.01,
         pu_kicker:.00,
         pu_punch:.00,
         pu_jelly:.00,
@@ -159,7 +159,7 @@ shared.updateAvatar = function (t, slotName, avatar, world, command) {
     if (command.fire && avatar.rb > 0) {
         if (cell_entity === undefined) {
             avatar.rb--;
-            world.createEntity(cell, {type:"bomb", et:t + shared.gp_bomb_ttl_ms, p:avatar.p,own:slotName});
+            world.createEntity(cell, {type:"bomb", et:t + shared.gp_bomb_ttl_ms, p:avatar.p, own:slotName});
         } else if (avatar.pu_spooge && cell_entity.type === "bomb" && command.fire === 1) {
             var c = cell;
             var d = directions[avatar.h % 4];
@@ -167,7 +167,7 @@ shared.updateAvatar = function (t, slotName, avatar, world, command) {
                 c += d;
                 if (entities[c])break;
                 avatar.rb--;
-                world.createEntity(c, {type:"bomb", et:t + shared.gp_bomb_ttl_ms, p:avatar.p,own:slotName});
+                world.createEntity(c, {type:"bomb", et:t + shared.gp_bomb_ttl_ms, p:avatar.p, own:slotName});
             }
         }
     }
@@ -241,18 +241,18 @@ shared.simulateOnTick = {
     bomb:function (t, cell, entity, world) {
         function blastBomb(c) {
             var bomb = world.entities[c];
-            var avatar=world.entities[bomb.own];
-            if(avatar)avatar.rb++;
+            var avatar = world.entities[bomb.own];
+            if (avatar)avatar.rb++;
             world.destroyEntity(c); // Remove the bomb
-            world.createTemporaryEntity({type:'te_cl', a:"blasto", c:c, ttl:shared.gp_flame_duration_ms}); // Create blast center fx
+            world.createTemporaryEntity({type:'te_cl', a:"blasto", c:c, ttl:shared.gp_flame_duration_ms, own:bomb.own}); // Create blast center fx
             world.burn(c); // Burn the cell
-            propagateFire(c, shared.mapwidth, "blasts", bomb.p);
-            propagateFire(c, -shared.mapwidth, "blastn", bomb.p);
-            propagateFire(c, 1, "blaste", bomb.p);
-            propagateFire(c, -1, "blastw", bomb.p);
+            propagateFire(c, shared.mapwidth, "blasts", bomb.p,bomb.own);
+            propagateFire(c, -shared.mapwidth, "blastn", bomb.p,bomb.own);
+            propagateFire(c, 1, "blaste", bomb.p,bomb.own);
+            propagateFire(c, -1, "blastw", bomb.p,bomb.own);
         }
 
-        function propagateFire(c, direction, type, pow) {
+        function propagateFire(c, direction, type, pow, own) {
             propagate: for (var i = pow; i > 0; i--) {
                 c += direction;
                 var e = world.entities[c];
@@ -278,11 +278,11 @@ shared.simulateOnTick = {
                     } else {
                         world.burn(c)
                         world.destroyEntity(c); //remove the object
-                        world.createTemporaryEntity({type:"te_cl", a:type + "t", c:c, ttl:shared.gp_flame_duration_ms});
+                        world.createTemporaryEntity({type:"te_cl", a:type + "t", c:c, ttl:shared.gp_flame_duration_ms, own:own});
                     }
                 }
                 if (world.burn(c)) { // This cell has not burn this round
-                    world.createTemporaryEntity({type:"te_cl", a:i == 1 ? type + "t" : type, c:c, ttl:shared.gp_flame_duration_ms});
+                    world.createTemporaryEntity({type:"te_cl", a:i == 1 ? type + "t" : type, c:c, ttl:shared.gp_flame_duration_ms, own:own});
                 }
             }
         }
