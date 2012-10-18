@@ -4,10 +4,9 @@
  * The startup function is executed by jQuery when the page is ready.
  */
 function startup() {
-    // please
-    var socket = io.connect();
 
-    // Write sefull metrics in shit object to get a periodic dump to the console
+
+// Write sefull metrics in shit object to get a periodic dump to the console
     var metrics = {};
     setInterval(function () {
         console.log(JSON.stringify(metrics));
@@ -200,6 +199,10 @@ function startup() {
         }
     }
 
+
+// please
+    var socket;
+
     /**
      * Create as a FIFO queue with random access. When an event is appended an event identifier is returned. This
      * identifier is unique for this queue. This identifier is used to discard the event an all previous ones with the
@@ -288,6 +291,7 @@ function startup() {
     }
 
 
+    var tiles, sprites, csprites = {};
     var pingPeriodMs = 2000;
     var pingStartMs = undefined;
     var pingHandler = null;
@@ -301,29 +305,6 @@ function startup() {
     var lastFrameTime = undefined;
     var keyboard = new Keyboard();
     var animations;
-
-    var tiles = $('<img src="tiles.png"/>')[0];
-    var sprites = $('<img src="sprites.png"/>')[0];
-    var csprites = {};
-    csprites.slot0 = csprites[undefined]=sprites;//green
-    Pixastic.process(sprites, "hsl", {hue:120, saturation:0, lightness:0}, function (newImg) {
-        csprites.slot1 = newImg
-    });//blue
-    Pixastic.process(sprites, "hsl", {hue:180, saturation:0, lightness:0}, function (newImg) {
-        csprites.slot2 = newImg
-    });//purple
-    Pixastic.process(sprites, "hsl", {hue:-120, saturation:0, lightness:0}, function (newImg) {
-        csprites.slot3 = newImg
-    });//red
-    Pixastic.process(sprites, "hsl", {hue:-60, saturation:0, lightness:0}, function (newImg) {
-        csprites.slot4 = newImg
-    });//yellow
-    Pixastic.process(sprites, "hsl", {hue:60, saturation:0, lightness:0}, function (newImg) {
-        csprites.slot5 = newImg
-    });//cyan
-    Pixastic.process(sprites, "hsl", {hue:0, saturation:-100, lightness:0}, function (newImg) {
-        csprites.slot6 = newImg
-    });//grey
 
 
     var gfx = function () {
@@ -441,6 +422,9 @@ function startup() {
     }
 
     function renderFrame(curFrameTime) {
+        if (sharedState.state !== "play") return;
+        window.requestAnimationFrame(renderFrame);
+
         // Compute the time since the biginning of the rould from the client point of view
         var clientRoundTime = curFrameTime - localState.startTime;
         // Interpolate
@@ -473,8 +457,7 @@ function startup() {
         // Prepare next call
         lastFrameTime = curFrameTime;
 
-        if (sharedState.state === "play")
-            window.requestAnimationFrame(renderFrame);
+
     }
 
     var onState = {
@@ -559,7 +542,7 @@ function startup() {
             inputElement.attr("value", slot.name);
             if (requestForcusAndSelect)
                 inputElement.focus().select();
-            $(this).find("div.ifother").text(slot.name);
+            $(this).find("div.ifother").text(slot.name||"");
         });
     }
 
@@ -575,50 +558,237 @@ function startup() {
         paintTiles(context);
     }
 
-    socket.on('connecting', function (protocol) {
-        console.log("real time connection with a " + protocol);
-    });
 
-    socket.on('connect', function () {
-        console.log("connection successful %o", socket);
-        pingHandler = setInterval(function () {
-            if (pingStartMs === undefined || Date.now() - pingStartMs > 2 * pingPeriodMs) {
-                pingStartMs = Date.now();
-                socket.emit("ping");
-            }
-        }, pingPeriodMs);
-    });
-
-    socket.on('disconnect', function () {
-        console.log("Connection lost");
-        clearInterval(pingHandler = null);
-    });
-
-    socket.on("pong", function () {
-        var latency = Date.now() - pingStartMs;
-        socket.emit("pung");
-        metrics["latency"] = latency + "ms";
-    });
-
-    socket.on("set_session", function (newSid) {
-        console.log("session identifier is ", newSid);
-        sid = newSid;
-    });
-
-    socket.on('connect_failed', function (e) {
-        $("#websocketDown").text(e ? e : 'connection failed').dialog("open");
-    });
-
-    socket.on("state", function (newState) {
-        var prevState = sharedState;
-        sharedState = newState;
-        if (prevState.state !== sharedState.state) {
-            $(".outer").children().attr("class", sharedState.state);
-            onState[prevState.state].exit(prevState, sharedState);
-            onState[sharedState.state].enter(prevState, sharedState);
+    function LoadingSystem() {
+        var steps = [];
+        var progressHandler = function (desc, min, max, value) {
         }
-        onState[sharedState.state].update(prevState, sharedState);
-    });
+        this.onProgress = function (fnct) {
+            progressHandler = fnct;
+            return this;
+        };
+        this.then = function (description, step) {
+            step.description = description;
+            steps.push(step);
+            return this;
+        };
+        this.go = function () {
+            var idx = -1;
+            var waitAndContinue = function(){
+                setTimeout(continuation,80);
+            }
+            var continuation = function () {
+                if (idx < steps.length - 1) {
+                    idx++;
+                    var todo = steps[idx];
+                    progressHandler(todo.description, 0, steps.length - 1, idx);
+                    todo(waitAndContinue);
+                } else {
+                    progressHandler("Done", 0, steps.length - 1, steps.length - 1);
+                }
+            }
+            waitAndContinue();
+        }
+        Object.freeze(this);
+    }
+
+
+    new LoadingSystem()
+        .onProgress(function (desc, min, max, value) {
+            console.log("[" + value + "/" + max + "] " + desc);
+            $("#loadingprogress").attr({min:min, max:max, value:value});
+            $("#loadingstatus").text(desc);
+        }).then("Load tiles",function (continuation) {
+            tiles = new Image();
+            tiles.onload = continuation;
+            tiles.src = "tiles.png";
+        }).then("Load maps",function (continuation) {
+            $.ajax({
+                url:"maps.json",
+                success:function (data) {
+                    console.log("maps loaded with success");
+                    maps = data;
+                    var control = $('#mapselect');
+                    $.each(maps.layers, function (idx, element) {
+                        control.append("<option value='" + idx + "'>" + element.name + "</option>");
+                    });
+                    repaintPreview();
+                },
+                failure:function (data) {
+                    alert("Failed to load maps.json");
+                }
+            }).always(continuation);
+        }).then("Load animations",function (continuation) {
+            $.ajax({
+                url:"ani.json",
+                success:function (data) {
+                    console.log("animations loaded with success");
+                    function offset(name, x, y) {
+                        var frames = data[name].frames;
+                        for (var i = 0; i < frames.length; i++) {
+                            var frame = frames[i];
+                            frame.xo += x;
+                            frame.yo += y;
+                        }
+                        return frames;
+                    }
+
+                    animations = {
+                        0:data["walk north"].frames,
+                        1:data["walk east"].frames,
+                        2:data["walk south"].frames,
+                        3:data["walk west"].frames,
+                        4:data["stand north"].frames,
+                        5:data["stand east"].frames,
+                        6:data["stand south"].frames,
+                        7:data["stand west"].frames,
+                        32:data["die green 1"].frames,
+                        33:data["die green 2"].frames,
+                        34:data["die green 3"].frames,
+                        35:data["die green 4"].frames,
+                        36:data["die green 5"].frames,
+                        37:data["die green 6"].frames,
+                        38:data["die green 7"].frames,
+                        39:data["die green 8"].frames,
+                        40:data["die green 9"].frames,
+                        41:data["die green 10"].frames,
+                        42:data["die green 11"].frames,
+                        43:data["die green 12"].frames,
+                        44:data["die green 13"].frames,
+                        45:data["die green 14"].frames,
+                        46:data["die green 15"].frames,
+                        47:data["die green 16"].frames,
+                        48:data["die green 17"].frames,
+                        49:data["die green 18"].frames,
+                        50:data["die green 19"].frames,
+                        51:data["die green 20"].frames,
+                        52:data["die green 21"].frames,
+                        53:data["die green 22"].frames,
+                        54:data["die green 23"].frames,
+                        55:data["die green 24"].frames,
+                        bomb:data["bomb regular green"].frames,
+                        crate:offset("tile 5 brick", -1, 2),
+                        crateblast:offset("flame brick 5", -1, 2),
+                        pu_bomb:offset("power bomb", 0, 2),
+                        pu_flame:offset("power flame", 0, 2),
+                        pu_kicker:offset("power kicker", 0, 2),
+                        pu_disease:offset("power disease", 0, 2),
+                        pu_punch:offset("power punch", 0, 2),
+                        pu_skate:offset("power skate", 0, 2),
+                        pu_jelly:offset("power jelly", 0, 2),
+                        pu_spooge:offset("power spooge", 0, 2),
+                        pu_trigger:offset("power trigger", 0, 2),
+                        pu_goldflame:offset("power goldflame", 0, 2),
+                        pu_grab:offset("power grab", 0, 2),
+                        blasto:offset("flame center green", 0, 0),
+                        blastn:offset("flame midnorth green", -2, 0),
+                        blastnt:offset("flame tipnorth green", -3, -1),
+                        blaste:offset("flame mideast green", 0, -7),
+                        blastet:offset("flame tipeast green", -2, -6),
+                        blasts:offset("flame midsouth green", -2, 0),
+                        blastst:offset("flame tipsouth green", -2, 0),
+                        blastw:offset("flame midwest green", 0, -5),
+                        blastwt:offset("flame tipwest green", 0, -5)
+                    }
+                },
+                failure:function (data) {
+                    alert("Failed to load ani.json");
+                }
+            }).always(continuation);
+        }).then("Load sprites",function (continuation) {
+            csprites[undefined] = csprites.slot0 = sprites = new Image();
+            sprites.onload = continuation;
+            sprites.src = "sprites.png";
+        }).then("Build canvas",function (continuation) {
+            var canvas = document.createElement('canvas');
+            canvas.width = sprites.width; canvas.height = sprites.height;
+            var ctx=canvas.getContext("2d");
+            ctx.drawImage(sprites,0,0);
+            sprites=canvas;
+            continuation();
+        }).then("Generate magenta sprites",function (continuation) {
+            csprites.slot0 = Pixastic.process(sprites, "hsl", {hue:-180, lightness:22, saturation:-27});
+            continuation();
+        }).then("Generate red sprites",function (continuation) {
+            csprites.slot1 = Pixastic.process(sprites, "hsl", {hue:-120, lightness:20, saturation:-20});
+            continuation();
+        }).then("Generate orange sprites",function (continuation) {
+            csprites.slot2 = Pixastic.process(sprites, "hsl", {hue:-100, lightness:10, saturation:-10});
+            continuation();
+        }).then("Generate yellow sprites",function (continuation) {
+            csprites.slot3 = Pixastic.process(sprites, "hsl", {hue:-68, lightness:5, saturation:-5});
+            continuation();
+        }).then("Generate green sprites",function (continuation) {
+            csprites.slot4 = Pixastic.process(sprites, "hsl", {hue:-15, saturation:6, lightness:-20});
+            continuation();
+        }).then("Generate cyan sprites",function (continuation) {
+            csprites.slot5 = Pixastic.process(sprites, "hsl", {hue:60, saturation:0, lightness:-30});
+            continuation();
+        }).then("Generate blue sprites",function (continuation) {
+            csprites.slot6 = Pixastic.process(sprites, "hsl", {hue:98, saturation:16, lightness:-10});
+            continuation();
+        }).then("Generate purple sprites",function (continuation) {
+            csprites.slot7 = Pixastic.process(sprites, "hsl", {hue:145, saturation:42, lightness:-10});
+            continuation();
+        }).then("Generate black sprites",function (continuation) {
+            csprites.slot8 = Pixastic.process(sprites, "hsl", {hue:0, saturation:-100, lightness:-100});
+            continuation();
+        }).then("Generate white sprites",function (continuation) {
+            csprites.slot9 = Pixastic.process(sprites, "hsl", {hue:0, saturation:-100, lightness:100});
+            continuation();
+        }).then("Connect to the server",function (continuation) {
+            socket = io.connect();
+            $(".outer").children().attr("class", "prepare");
+
+            socket.on('connecting', function (protocol) {
+                console.log("real time connection with a " + protocol);
+            });
+
+            socket.on('connect', function () {
+                console.log("connection successful %o", socket);
+                pingHandler = setInterval(function () {
+                    if (pingStartMs === undefined || Date.now() - pingStartMs > 2 * pingPeriodMs) {
+                        pingStartMs = Date.now();
+                        socket.emit("ping");
+                    }
+                }, pingPeriodMs);
+            });
+
+            socket.on('disconnect', function () {
+                console.log("Connection lost");
+                clearInterval(pingHandler = null);
+            });
+
+            socket.on("pong", function () {
+                var latency = Date.now() - pingStartMs;
+                socket.emit("pung");
+                metrics["latency"] = latency + "ms";
+            });
+
+            socket.on("set_session", function (newSid) {
+                console.log("session identifier is ", newSid);
+                sid = newSid;
+            });
+
+            socket.on('connect_failed', function (e) {
+                $("#websocketDown").text(e ? e : 'connection failed').dialog("open");
+            });
+
+            socket.on("state", function (newState) {
+                var prevState = sharedState;
+                sharedState = newState;
+                if (prevState.state !== sharedState.state) {
+                    $(".outer").children().attr("class", sharedState.state);
+                    onState[prevState.state].exit(prevState, sharedState);
+                    onState[sharedState.state].enter(prevState, sharedState);
+                }
+                onState[sharedState.state].update(prevState, sharedState);
+            });
+
+            continuation();
+        }).go();
+
+
 
     $("#websocketDown").dialog(
         { autoOpen:false, modal:true, buttons:{ "Ok":function () {
@@ -664,115 +834,6 @@ function startup() {
     });
 
 
-    $.ajax({
-        url:"maps.json",
-        success:function (data) {
-            console.log("maps loaded with success");
-            maps = data;
-            var control = $('#mapselect');
-            $.each(maps.layers, function (idx, element) {
-                control.append("<option value='" + idx + "'>" + element.name + "</option>");
-            });
-            repaintPreview();
-        },
-        failure:function (data) {
-            alert("Failed to load maps.json");
-        }
-    });
-
-
-    $.ajax({
-        url:"ani.json",
-        success:function (data) {
-            console.log("animations loaded with success");
-            function offset(name, x, y) {
-                var frames = data[name].frames;
-                for (var i = 0; i < frames.length; i++) {
-                    var frame = frames[i];
-                    frame.xo += x;
-                    frame.yo += y;
-                }
-                return frames;
-            }
-
-            animations = {
-                0:data["walk north"].frames,
-                1:data["walk east"].frames,
-                2:data["walk south"].frames,
-                3:data["walk west"].frames,
-                4:data["stand north"].frames,
-                5:data["stand east"].frames,
-                6:data["stand south"].frames,
-                7:data["stand west"].frames,
-                8:data["standbomb north"].frames,
-                9:data["standbomb east"].frames,
-                10:data["standbomb south"].frames,
-                11:data["standbomb west"].frames,
-                12:data["pickup north"].frames,
-                13:data["pickup east"].frames,
-                14:data["pickup south"].frames,
-                15:data["pickup west"].frames,
-                16:data["punch north"].frames,
-                17:data["punch east"].frames,
-                18:data["punch south"].frames,
-                19:data["punch west"].frames,
-                20:data["kick north"].frames,
-                21:data["kick east"].frames,
-                22:data["kick south"].frames,
-                23:data["kick west"].frames,
-                32:data["die green 1"].frames,
-                33:data["die green 2"].frames,
-                34:data["die green 3"].frames,
-                35:data["die green 4"].frames,
-                36:data["die green 5"].frames,
-                37:data["die green 6"].frames,
-                38:data["die green 7"].frames,
-                39:data["die green 8"].frames,
-                40:data["die green 9"].frames,
-                41:data["die green 10"].frames,
-                42:data["die green 11"].frames,
-                43:data["die green 12"].frames,
-                44:data["die green 13"].frames,
-                45:data["die green 14"].frames,
-                46:data["die green 15"].frames,
-                47:data["die green 16"].frames,
-                48:data["die green 17"].frames,
-                49:data["die green 18"].frames,
-                50:data["die green 19"].frames,
-                51:data["die green 20"].frames,
-                52:data["die green 21"].frames,
-                53:data["die green 22"].frames,
-                54:data["die green 23"].frames,
-                55:data["die green 24"].frames,
-                bomb:data["bomb regular green"].frames,
-                crate:offset("tile 5 brick", -1, 2),
-                crateblast:offset("flame brick 5", -1, 2),
-                pu_bomb:offset("power bomb", 0, 2),
-                pu_flame:offset("power flame", 0, 2),
-                pu_kicker:offset("power kicker", 0, 2),
-                pu_disease:offset("power disease", 0, 2),
-                pu_punch:offset("power punch", 0, 2),
-                pu_skate:offset("power skate", 0, 2),
-                pu_jelly:offset("power jelly", 0, 2),
-                pu_spooge:offset("power spooge", 0, 2),
-                pu_trigger:offset("power trigger", 0, 2),
-                pu_goldflame:offset("power goldflame", 0, 2),
-                pu_grab:offset("power grab", 0, 2),
-                blasto:offset("flame center green", 0, 0),
-                blastn:offset("flame midnorth green", -2, 0),
-                blastnt:offset("flame tipnorth green", -3, -1),
-                blaste:offset("flame mideast green", 0, -7),
-                blastet:offset("flame tipeast green", -2, -6),
-                blasts:offset("flame midsouth green", -2, 0),
-                blastst:offset("flame tipsouth green", -2, 0),
-                blastw:offset("flame midwest green", 0, -5),
-                blastwt:offset("flame tipwest green", 0, -5)
-            }
-        },
-        failure:function (data) {
-            alert("Failed to load ani.json");
-        }
-    });
 }
 
 $().ready(startup);

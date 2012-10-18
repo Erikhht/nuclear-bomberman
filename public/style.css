@@ -8,7 +8,6 @@
 
 root {
     display: block;
-
 }
 
 body {
@@ -17,7 +16,6 @@ body {
 }
 
 .outer {
-
     margin: 8px auto;
     width: 1024px;
     height: 800px;
@@ -58,7 +56,7 @@ ol.slots >  li {
 .iffree {
     cursor: default;
 }
-.iffree, .ifown, .ifother, .ifprepare, .ifplay {
+.iffree, .ifown, .ifother, .ifprepare, .ifplay, .ifload {
     display: none;
 }
 
@@ -66,7 +64,8 @@ ol.slots >  li {
 .prepare .own .ifown,
 .prepare .other .ifother,
 .play .ifplay,
-.prepare .ifprepare{
+.prepare .ifprepare,
+.load .ifload{
     display: block;
 }
 
@@ -84,3 +83,69 @@ li.free {
 
 }
 
+
+
+
+/* All HTML5 progress enabled browsers */
+
+/*
+ * Candy Striping Example
+ */
+
+/* All HTML5 progress enabled browsers */
+progress.example4 {
+
+    /* Turns off styling - not usually needed, but good to know. */
+    appearance: none;
+    -moz-appearance: none;
+    -webkit-appearance: none;
+    /* gets rid of default border in Firefox and Opera. */
+    border: solid #aaaaaa 5px;
+    border-radius: 10px;
+    /* Dimensions */
+    width: 400px;
+    height: 60px;
+}
+/* Polyfill */
+progress.example4[role]:after {
+    background-image: none; /* removes default background from polyfill */
+}
+/*
+ * Background of the progress bar background
+ */
+
+/* Firefox and Polyfill */
+progress.example4 {
+    background: #444444 !important; /* !important only needed in polyfill */
+}
+/* Chrome */
+progress.example4::-webkit-progress-bar {
+    background: #444444;
+}
+/*
+ * Background of the progress bar value
+ */
+
+/* Firefox */
+progress.example4::-moz-progress-bar {
+    border-radius: 5px;
+    background-image: -moz-linear-gradient(
+        -45deg,
+        rgba(255, 255, 255, .2) 25%,
+        transparent 25%,
+        transparent 50%,
+        rgba(255, 255, 255, .2) 50%,
+        rgba(255, 255, 255, .2) 75%,
+        transparent 75%,
+        transparent
+    );
+}
+
+#loadingstatus{
+    font-size:20px;
+    color: white;
+    text-align: center;
+    margin: 20px;
+    text-shadow: 0 2px 3px #666;
+
+}

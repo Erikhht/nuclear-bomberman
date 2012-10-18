@@ -61,6 +61,18 @@ function SimulationSystem() {
                 sockets.emit("state", state);
                 state.temporaryEntities = [];//flush the createTemporaryEntity queue
             }
+            if (!state.end) {
+                var alive = 0;
+                for (var slotName in state.slots) {
+                    var avatar = state.entities[slotName];
+                    if (avatar && avatar.h < 32) alive++;
+                }
+                if (alive <= 1) {
+                    state.end=state.t+shared.gp_round_end_duration;
+                }
+            }else if(state.t>state.end){
+                stateSystem.goto(PrepareState);
+            }
         }, shared.sv_tick_period_ms);
     }
 }
@@ -103,8 +115,10 @@ function PrepareState() {
             slots:state.slots,
             mapIndex:state.mapIndex
         }
+        sockets.emit('state', state);
     };
 }
+
 
 function PlayState() {
 
@@ -149,13 +163,15 @@ function PlayState() {
                 s:shared.gp_ini_avatar_speed //speed
             }
         }
+        sockets.emit('state', state);
     };
     this.exit = function () {
         simulationSystem.stop();
     }
 }
 
-stateSystem.goto(StartupState);
+
+
 
 /**
  * Hack the authorization process to capture he session identifier cookie into socket.handshake.sid for later use.
@@ -177,6 +193,8 @@ ioSrv.set('authorization', function (data, accept) {
     accept(null, true);
 });
 var sockets = ioSrv.sockets;
+
+stateSystem.goto(StartupState);
 
 function PlayerCleaner() {
     var timeouts = {};
@@ -276,7 +294,6 @@ sockets.on('connection', function (socket) {
             return;
         }
         stateSystem.goto(PlayState);
-        sockets.emit('state', state);
     });
 
 
@@ -289,7 +306,9 @@ sockets.on('connection', function (socket) {
             delete state.entities[key];
         }
     };
-    predictionSystem.__defineGetter__("entities",function(){return state.entities});
+    predictionSystem.__defineGetter__("entities", function () {
+        return state.entities
+    });
     Object.freeze(predictionSystem);
 
     socket.on('player_cmd', function (cmd) {

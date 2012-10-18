@@ -5,7 +5,7 @@ var shared = {
     cl_predict:true, // Client side prediction enable/disable
     cl_predict_respawn:true,
     cl_interp:true, // Client side interpolation enable/disable
-    cl_interp_delay_ms:200, // Amount of ms the time is shifted back when the client continuously interpolate object position
+    cl_interp_delay_ms:120, // Amount of ms the time is shifted back when the client continuously interpolate object position
     sv_tick_period_ms:30, // Discrete simulation period, 30 ms = 33hz ( ~60 is ok)
     sv_update_tick:2, // Send an unpdate to the client every 2 ticks = 60 ms = 17 hz ( ~20 is ok)
     sv_disconnect_timeout:30 * 1000,
@@ -31,7 +31,7 @@ var shared = {
     gp_ini_bomb_count:2, // number of bomb available at the beginning of a game
     bombTTLTick:100, // bomb duration in game tick
     gp_ini_avatar_speed:.01, // bomberman speed in grid unity pe millisecond
-
+    gp_round_end_duration:3000,
     // gfx
     mapwidth:20,
     tilewidth:40,

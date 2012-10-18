@@ -1,53 +1,112 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <title>Nuclear Snake</title>
-        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<head>
+    <title>Nuclear Snake</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
-        <link rel="stylesheet" href="style.css" type="text/css"/>
-        <link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/themes/base/jquery-ui.css" type="text/css"/>
+    <link rel="stylesheet" href="style.css" type="text/css"/>
+    <link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/themes/base/jquery-ui.css"
+          type="text/css"/>
 
-        <script src="/socket.io/socket.io.js"></script>
-        <script src="jquery-1.7.2.js"></script>
-        <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/jquery-ui.min.js"></script>
-        <script src="pixastic.core.js"></script>
-        <script src="hsl.js"></script>
-        <script src="animationframe.js"></script>
-        <script src="shared.js"></script>
-        <script src="snake.js"></script>
-    </head>
-    <body>
-        <div class="outer">
-            <div class="prepare">
-                <div class="board">
-                    <div class="ifprepare">
-                        <select id="mapselect" disabled="true"/>
-                        <input id="startbutton" disabled="true" type="button" name="start" value="start"/>
-                        <canvas width="400" height="288" id="preview"></canvas>
-                    </div>
-                    <div class="ifplay">
-                        <canvas id="board0" width="800" height="576" style="position: absolute; z-index: 1"></canvas>
-                        <canvas id="board1" width="800" height="576" style="position: absolute; z-index: 2"></canvas>
-                        <canvas id="board2" width="800" height="576" style="position: absolute; z-index: 3"></canvas>
-                    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="jquery-1.7.2.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/jquery-ui.min.js"></script>
+    <script src="pixastic.core.js"></script>
+    <script src="hsl.js"></script>
+    <script src="animationframe.js"></script>
+    <script src="shared.js"></script>
+    <script src="snake.js"></script>
+</head>
+<body>
+<div class="outer">
+    <div class="load">
+        <div class="board">
+            <div class="ifload">
+                <div style="padding: 200px 0px 0px 200px;">
+                    <progress class="example4" min="0" max="100" value="0" id="loadingprogress"></progress>
                 </div>
+                <div id="loadingstatus">Loading...</div>
             </div>
-            <div class="prepare">
-                <ol class="slots">
-                    <li class="free" id="slot0"><div class="iffree">+</div><input class="ifown" type=text size="16"><div class="ifother ifplay"></div></li>
-                    <li class="free" id="slot1"><div class="iffree">+</div><input class="ifown" type=text size="16"><div class="ifother ifplay"></div></li>
-                    <li class="free" id="slot2"><div class="iffree">+</div><input class="ifown" type=text size="16"><div class="ifother ifplay"></div></li>
-                    <li class="free" id="slot3"><div class="iffree">+</div><input class="ifown" type=text size="16"><div class="ifother ifplay"></div></li>
-                    <li class="free" id="slot4"><div class="iffree">+</div><input class="ifown" type=text size="16"><div class="ifother ifplay"></div></li>
-                    <li class="free" id="slot5"><div class="iffree">+</div><input class="ifown" type=text size="16"><div class="ifother ifplay"></div></li>
-                    <li class="free" id="slot6"><div class="iffree">+</div><input class="ifown" type=text size="16"><div class="ifother ifplay"></div></li>
-                    <li class="free" id="slot7"><div class="iffree">+</div><input class="ifown" type=text size="16"><div class="ifother ifplay"></div></li>
-                    <li class="free" id="slot8"><div class="iffree">+</div><input class="ifown" type=text size="16"><div class="ifother ifplay"></div></li>
-                    <li class="free" id="slot9"><div class="iffree">+</div><input class="ifown" type=text size="16"><div class="ifother ifplay"></div></li>
-                </ol>
+            <div class="ifprepare">
+                <select id="mapselect" disabled="true"/>
+                <input id="startbutton" disabled="true" type="button" name="start" value="start"/>
+                <canvas width="400" height="288" id="preview"></canvas>
+            </div>
+            <div class="ifplay">
+                <canvas id="board0" width="800" height="576" style="position: absolute; z-index: 1"></canvas>
+                <canvas id="board1" width="800" height="576" style="position: absolute; z-index: 2"></canvas>
+                <canvas id="board2" width="800" height="576" style="position: absolute; z-index: 3"></canvas>
             </div>
         </div>
-        <div id="cstat"></div>
-        <div id="websocketDown" title="Connection failed">You browser is unable to establish a connection to the server after 5 attempts.</div>
-    </body>
+    </div>
+    <div class="prepare">
+        <ol class="slots">
+            <li class="free" id="slot0">
+                <div class="iffree">+</div>
+                <input class="ifown" type=text size="16">
+
+                <div class="ifother ifplay"></div>
+            </li>
+            <li class="free" id="slot1">
+                <div class="iffree">+</div>
+                <input class="ifown" type=text size="16">
+
+                <div class="ifother ifplay"></div>
+            </li>
+            <li class="free" id="slot2">
+                <div class="iffree">+</div>
+                <input class="ifown" type=text size="16">
+
+                <div class="ifother ifplay"></div>
+            </li>
+            <li class="free" id="slot3">
+                <div class="iffree">+</div>
+                <input class="ifown" type=text size="16">
+
+                <div class="ifother ifplay"></div>
+            </li>
+            <li class="free" id="slot4">
+                <div class="iffree">+</div>
+                <input class="ifown" type=text size="16">
+
+                <div class="ifother ifplay"></div>
+            </li>
+            <li class="free" id="slot5">
+                <div class="iffree">+</div>
+                <input class="ifown" type=text size="16">
+
+                <div class="ifother ifplay"></div>
+            </li>
+            <li class="free" id="slot6">
+                <div class="iffree">+</div>
+                <input class="ifown" type=text size="16">
+
+                <div class="ifother ifplay"></div>
+            </li>
+            <li class="free" id="slot7">
+                <div class="iffree">+</div>
+                <input class="ifown" type=text size="16">
+
+                <div class="ifother ifplay"></div>
+            </li>
+            <li class="free" id="slot8">
+                <div class="iffree">+</div>
+                <input class="ifown" type=text size="16">
+
+                <div class="ifother ifplay"></div>
+            </li>
+            <li class="free" id="slot9">
+                <div class="iffree">+</div>
+                <input class="ifown" type=text size="16">
+
+                <div class="ifother ifplay"></div>
+            </li>
+        </ol>
+    </div>
+</div>
+<div id="cstat"></div>
+<div id="websocketDown" title="Connection failed">You browser is unable to establish a connection to the server after 5
+    attempts.
+</div>
+</body>
 </html>
