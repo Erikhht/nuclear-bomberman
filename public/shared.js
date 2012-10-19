@@ -32,8 +32,11 @@ var shared = {
     bombTTLTick:100, // bomb duration in game tick
     gp_ini_avatar_speed:.01, // bomberman speed in grid unity pe millisecond
     gp_round_end_duration:3000,
+    gp_round_time:2*1000,
+    gp_endgame_drop_period_tick:4,
     // gfx
     mapwidth:20,
+    mapheight:16,
     tilewidth:40,
     tileheight:36,
     frameRateMs:.02 // annimation frame per millisecond

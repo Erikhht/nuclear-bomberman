@@ -19,7 +19,7 @@ function startup() {
         var c = undefined;
 
         var locateSnapshots = function (roundTime) {
-            var lerpTime = shared.cl_interp ? roundTime - shared.cl_interp_delay_ms : this.last.t;
+            var lerpTime = shared.cl_interp ? roundTime - shared.cl_interp_delay_ms : queue[queue.length - 1].t;
             for (var fromIdx = queue.length - 1; fromIdx >= 0; fromIdx--) {
                 if (queue[fromIdx].t <= lerpTime) {
                     state_0 = queue[fromIdx];
@@ -43,6 +43,7 @@ function startup() {
             avatar:function (pos_0, pos_1) {
                 var dist_x = Math.abs(pos_1.x - pos_0.x);
                 var dist_y = Math.abs(pos_1.y - pos_0.y);
+                var cx, cy;
                 var traveled = (dist_x + dist_y) * c;
                 if (traveled === 0)
                     return undefined; // Avoid superfluity calculation and direction update
@@ -53,11 +54,11 @@ function startup() {
                         pos_c.x = pos_1.x;
                         if (dist_y) {
                             isHorizontal = false; // remember that we are going vertically at t
-                            var cy = (traveled - dist_x) / dist_y;
+                            cy = (traveled - dist_x) / dist_y;
                             pos_c.y = pos_0.y + cy * (pos_1.y - pos_0.y)
                         }
                     } else {//still moving horizontally
-                        var cx = traveled / dist_x;
+                        cx = traveled / dist_x;
                         pos_c.x = pos_0.x + cx * (pos_1.x - pos_0.x);
                     }
                 } else {//Bomberman goes vertically first and then horizontally at t0
@@ -65,7 +66,7 @@ function startup() {
                         pos_c.y = pos_1.y;
                         if (dist_x) {
                             isHorizontal = true;
-                            var cx = (traveled - dist_y) / dist_x;
+                            cx = (traveled - dist_y) / dist_x;
                             pos_c.x = pos_0.x + cx * (pos_1.x - pos_0.x);
                         }
                     } else {//still moving vertically
@@ -86,14 +87,14 @@ function startup() {
             for (var key in entities_0) {
                 var entity_0 = entities_0[key], entity_1 = entities_1[key];
                 if (entity_1 === undefined) continue; // disapeared! leave unchanged
-                var func = interpolateFunc[entity_0.type]
+                var func = interpolateFunc[entity_0.type];
                 if (func) {
                     var newValue = interpolateFunc[entity_0.type](entity_0, entity_1);
                     if (newValue) entities_c[key] = newValue;
                 }
             }
             return entities_c;
-        }
+        };
 
         this.append = function (state) {
             //prevent dupplicate snapshot at the same time early the future division per zero in the interpolation coeficient.
@@ -108,7 +109,7 @@ function startup() {
                 interpolationTarget.spawnTemporaryEntities(roundTime, state_0.temporaryEntities);
             }
             interpolationTarget.submit(interpolateEntities(), state_0.acks);
-        }
+        };
 
         this.last = function () {
             return queue[queue.length - 1];//returns undefined when the array is empty
@@ -140,10 +141,10 @@ function startup() {
 
         this.isFirstTimePredicted = function () {
             return !(this.acks[curSlotName] >= curCommand.id);
-        }
+        };
         this.destroyEntity = function (name) {
             this.createEntity(name, undefined);
-        }
+        };
 
         this.spawnTemporaryEntities = function (roundTime, newTemporaryEntities) {
             for (var idx = 0; idx < newTemporaryEntities.length; idx++) {
@@ -152,7 +153,7 @@ function startup() {
                 e.t1 = roundTime + e.ttl;
                 this.temporaryEntities.push(e);
             }
-        }
+        };
 
         this.submit = function (newEntities, newInterpolationAcks) {
             this.entities = newEntities;
@@ -165,7 +166,7 @@ function startup() {
                         delete predictedEntities[key]; // does nothing when undefined
                 }
             }
-        }
+        };
 
         this.predict = function (player) {
             if (shared.cl_predict_respawn) {
@@ -189,8 +190,8 @@ function startup() {
                 if (curCommand) predictionAcks[curSlotName] = curCommand.id;
             }
 
-            metrics["predicted_entities"] = predictedEntities//Object.keys(predictedEntities).length;=
-        }
+            metrics["predicted_entities"] = predictedEntities;//Object.keys(predictedEntities).length;=
+        };
 
         this.cleanTemporaryEntities = function (clientRoundTime) {
             this.temporaryEntities = this.temporaryEntities.filter(function (e) {
@@ -255,7 +256,7 @@ function startup() {
             }
             metrics["command_queue_" + this.slot] = (this.commandQueue.length - this.commandQueue.firstPending) + "/" + this.commandQueue.length;
             return somethingHappened
-        }
+        };
         Object.freeze(this);
     }
 
@@ -286,7 +287,7 @@ function startup() {
         };
         this.listen = function (keyCode) {
             return keys[keyCode] = (keys[keyCode] || {isPressed:0});
-        }
+        };
         Object.freeze(this);
     }
 
@@ -331,7 +332,7 @@ function startup() {
         var p = 0;
         var ymax = maps.height * maps.tileheight;
         var xmax = maps.width * maps.tilewidth;
-        var props = maps.tilesets[0].tileproperties
+        var props = maps.tilesets[0].tileproperties;
         for (var y = 0; y < ymax; y += maps.tileheight)
             for (var x = 0; x < xmax; x += maps.tilewidth) {
                 var idx = map.data[p++];
@@ -352,7 +353,7 @@ function startup() {
         var frames = animations[entity.type];
         var idx = Math.floor((clientRoundTime * shared.frameRateMs) % frames.length);
         this.sprite(sprites, gfx.objects, frames[idx], x, y);
-    }
+    };
     var draw = {
         avatar:function (clientRoundTime, gfx, slotName, avatar) {
             var frame, frames = animations[avatar.h];
@@ -390,6 +391,9 @@ function startup() {
         pu_spooge:draw_cell_content,
         pu_goldflame:draw_cell_content,
         pu_grab:draw_cell_content,
+        hurry:function (clientRoundTime, gfx, cell, entity) {
+            this.sprite(sprites, gfx.avatars, animations.hurry[0], 400, 300);
+        },
         sprite:function (spriteSheet, context, frame, x, y) {
             context.drawImage(spriteSheet, frame.x, frame.y, frame.w, frame.h, x + frame.xo, y + frame.yo, frame.w, frame.h);
             if (shared.cl_draw_frame) {
@@ -419,7 +423,7 @@ function startup() {
             if (idx >= frames.length) return; // Disapear after the first animation
             this.sprite(csprites[entity.own], gfx.objects, frames[idx], x, y);
         }
-    }
+    };
 
     function renderFrame(curFrameTime) {
         if (sharedState.state !== "play") return;
@@ -448,9 +452,9 @@ function startup() {
         }
 
         // Draw every temporaryEntites
-        var entities = localState.prediction.temporaryEntities;
-        for (var k = 0; k < entities.length; k++) {
-            var entity = entities[k];
+        entities = localState.prediction.temporaryEntities;
+        for (k = 0; k < entities.length; k++) {
+            entity = entities[k];
             entity && draw[entity.type](clientRoundTime, gfx, undefined, entity);
         }
 
@@ -542,7 +546,7 @@ function startup() {
             inputElement.attr("value", slot.name);
             if (requestForcusAndSelect)
                 inputElement.focus().select();
-            $(this).find("div.ifother").text(slot.name||"");
+            $(this).find("div.ifother").text(slot.name || "");
         });
     }
 
@@ -562,7 +566,7 @@ function startup() {
     function LoadingSystem() {
         var steps = [];
         var progressHandler = function (desc, min, max, value) {
-        }
+        };
         this.onProgress = function (fnct) {
             progressHandler = fnct;
             return this;
@@ -574,9 +578,9 @@ function startup() {
         };
         this.go = function () {
             var idx = -1;
-            var waitAndContinue = function(){
-                setTimeout(continuation,80);
-            }
+            var waitAndContinue = function () {
+                setTimeout(continuation, 80);
+            };
             var continuation = function () {
                 if (idx < steps.length - 1) {
                     idx++;
@@ -586,9 +590,9 @@ function startup() {
                 } else {
                     progressHandler("Done", 0, steps.length - 1, steps.length - 1);
                 }
-            }
+            };
             waitAndContinue();
-        }
+        };
         Object.freeze(this);
     }
 
@@ -667,6 +671,7 @@ function startup() {
                         54:data["die green 23"].frames,
                         55:data["die green 24"].frames,
                         bomb:data["bomb regular green"].frames,
+                        hurry:data["hurry"].frames,
                         crate:offset("tile 5 brick", -1, 2),
                         crateblast:offset("flame brick 5", -1, 2),
                         pu_bomb:offset("power bomb", 0, 2),
@@ -701,10 +706,11 @@ function startup() {
             sprites.src = "sprites.png";
         }).then("Build canvas",function (continuation) {
             var canvas = document.createElement('canvas');
-            canvas.width = sprites.width; canvas.height = sprites.height;
-            var ctx=canvas.getContext("2d");
-            ctx.drawImage(sprites,0,0);
-            sprites=canvas;
+            canvas.width = sprites.width;
+            canvas.height = sprites.height;
+            var ctx = canvas.getContext("2d");
+            ctx.drawImage(sprites, 0, 0);
+            sprites = canvas;
             continuation();
         }).then("Generate magenta sprites",function (continuation) {
             csprites.slot0 = Pixastic.process(sprites, "hsl", {hue:-180, lightness:22, saturation:-27});
@@ -787,7 +793,6 @@ function startup() {
 
             continuation();
         }).go();
-
 
 
     $("#websocketDown").dialog(

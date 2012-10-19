@@ -20,6 +20,25 @@ var app = connect()
 var appSrv = app.listen(process.env.PORT);
 var ioSrv = require('socket.io').listen(appSrv);
 
+var endgame_sequence = function () {
+    var seq = [];
+    var mx = Math.min(shared.mapheight, shared.mapwidth) / 3;
+    for (var m = 1; m < mx; m++) {
+        for (var i = m; i < shared.mapwidth - m; i++) {
+            seq.push(shared.mapwidth * m + i);
+        }
+        for (i = m + 1; i < shared.mapheight - m; i++) {
+            seq.push(shared.mapwidth * i + shared.mapwidth - m -1);
+        }
+        for (i = shared.mapwidth - m - 1; i >= m; i--) {
+            seq.push(shared.mapwidth * (shared.mapheight - m -1) + i);
+        }
+        for (i = shared.mapheight - m - 1; i >= m + 1; i--) {
+            seq.push(shared.mapwidth * i + m);
+        }
+    }
+    return seq;
+}();
 
 function SimulationSystem() {
     var handle;
@@ -47,33 +66,55 @@ function SimulationSystem() {
             flame:new Array(maps.width * maps.height)
         }
         handle = setInterval(function () {
-            // There is no point here at beeing precice regarding the system clock.
-            // I gain repetability with incrementing the round time by the tick period.
-            state.t = msCount += shared.sv_tick_period_ms;
-            tickCount++;
-            world.entities = state.entities;
-            for (var key in state.entities) {
-                var entity = state.entities[key];
-                var onTick = shared.simulateOnTick[entity.type];
-                if (onTick) onTick(state.t, key, entity, world);
-            }
-            if (tickCount % shared.sv_update_tick === 0) {
-                sockets.emit("state", state);
-                state.temporaryEntities = [];//flush the createTemporaryEntity queue
-            }
-            if (!state.end) {
-                var alive = 0;
-                for (var slotName in state.slots) {
-                    var avatar = state.entities[slotName];
-                    if (avatar && avatar.h < 32) alive++;
+                // There is no point here at beeing precice regarding the system clock.
+                // I gain repetability with incrementing the round time by the tick period.
+                state.t = msCount += shared.sv_tick_period_ms;
+                tickCount++;
+                world.entities = state.entities;
+
+                // Display hurry at the end of the round time and reduce the map area
+                if (!state.endGame && state.t > shared.gp_round_time) {
+                    state.endGame = tickCount;
+                    world.createTemporaryEntity({type:"hurry", ttl:1000});//display HURRY!
                 }
-                if (alive <= 1) {
-                    state.end=state.t+shared.gp_round_end_duration;
+                if (state.endGame) {
+                    var p = tickCount - state.endGame;
+                    if (p % shared.gp_endgame_drop_period_tick == 0) {
+                        var cell = endgame_sequence[p / shared.gp_endgame_drop_period_tick];
+                        if (cell) {
+                            world.burn(cell); // kill players on this cell if any
+                            //world.createEntity(cell, {type:"wall"}); // create a wall & replace the cell content
+                            world.createEntity(cell, {type:"wall"}); // create a wall & replace the cell content
+                        }
+                    }
                 }
-            }else if(state.t>state.end){
-                stateSystem.goto(PrepareState);
-            }
-        }, shared.sv_tick_period_ms);
+
+                //Simulate every object
+                for (var key in state.entities) {
+                    var entity = state.entities[key];
+                    var onTick = shared.simulateOnTick[entity.type];
+                    if (onTick) onTick(state.t, key, entity, world);
+                }
+                // Detect when there is only one player
+                if (!state.end) {
+                    var alive = 0;
+                    for (var slotName in state.slots) {
+                        var avatar = state.entities[slotName];
+                        if (avatar && avatar.h < 32) alive++;
+                    }
+                    if (alive <= 1) state.end = state.t + shared.gp_round_end_duration;
+                } else if (state.t > state.end) stateSystem.goto(PrepareState);
+
+
+                // Send periodic snapshot to clients
+                if (tickCount % shared.sv_update_tick === 0) {
+                    sockets.emit("state", state);
+                    state.temporaryEntities = [];//flush the createTemporaryEntity queue
+                }
+
+            }, shared.sv_tick_period_ms
+        )
+        ;
     }
 }
 /**
@@ -92,6 +133,7 @@ function StateSystem() {
     }
     Object.freeze(this);
 }
+
 var stateSystem = new StateSystem();
 
 
@@ -169,8 +211,6 @@ function PlayState() {
         simulationSystem.stop();
     }
 }
-
-
 
 
 /**
@@ -295,7 +335,6 @@ sockets.on('connection', function (socket) {
         }
         stateSystem.goto(PlayState);
     });
-
 
     var predictionSystem = {
         createEntity:function (name, value) {
