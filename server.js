@@ -28,10 +28,10 @@ var endgame_sequence = function () {
             seq.push(shared.mapwidth * m + i);
         }
         for (i = m + 1; i < shared.mapheight - m; i++) {
-            seq.push(shared.mapwidth * i + shared.mapwidth - m -1);
+            seq.push(shared.mapwidth * i + shared.mapwidth - m - 1);
         }
         for (i = shared.mapwidth - m - 1; i >= m; i--) {
-            seq.push(shared.mapwidth * (shared.mapheight - m -1) + i);
+            seq.push(shared.mapwidth * (shared.mapheight - m - 1) + i);
         }
         for (i = shared.mapheight - m - 1; i >= m + 1; i--) {
             seq.push(shared.mapwidth * i + m);
@@ -40,83 +40,7 @@ var endgame_sequence = function () {
     return seq;
 }();
 
-function SimulationSystem() {
-    var handle;
-    this.stop = function () {
-        clearInterval(handle);
-    };
-    this.start = function () {
-        var msCount = 0;
-        var tickCount = 0;
-        var world = {//World is a state decorated with functions
-            createEntity:function (key, entity) {
-                state.entities[key] = entity;
-            }, destroyEntity:function (key) {
-                delete state.entities[key];
-            }, createTemporaryEntity:function (entity) {
-                state.temporaryEntities.push(entity);
-            }, burn:function (cell) {
-                if (this.flame[cell] >= state.t) return false; // already burnt this frame
-                this.flame[cell] = state.t;
-                return true;
-            }, isburning:function (cell) {
-                return this.flame[cell] >= state.t;
-            },
-            entities:state.entities,
-            flame:new Array(maps.width * maps.height)
-        }
-        handle = setInterval(function () {
-                // There is no point here at beeing precice regarding the system clock.
-                // I gain repetability with incrementing the round time by the tick period.
-                state.t = msCount += shared.sv_tick_period_ms;
-                tickCount++;
-                world.entities = state.entities;
 
-                // Display hurry at the end of the round time and reduce the map area
-                if (!state.endGame && state.t > shared.gp_round_time) {
-                    state.endGame = tickCount;
-                    world.createTemporaryEntity({type:"hurry", ttl:1000});//display HURRY!
-                }
-                if (state.endGame) {
-                    var p = tickCount - state.endGame;
-                    if (p % shared.gp_endgame_drop_period_tick == 0) {
-                        var cell = endgame_sequence[p / shared.gp_endgame_drop_period_tick];
-                        if (cell) {
-                            world.burn(cell); // kill players on this cell if any
-                            //world.createEntity(cell, {type:"wall"}); // create a wall & replace the cell content
-                            world.createEntity(cell, {type:"wall"}); // create a wall & replace the cell content
-                        }
-                    }
-                }
-
-                //Simulate every object
-                for (var key in state.entities) {
-                    var entity = state.entities[key];
-                    var onTick = shared.simulateOnTick[entity.type];
-                    if (onTick) onTick(state.t, key, entity, world);
-                }
-                // Detect when there is only one player
-                if (!state.end) {
-                    var alive = 0;
-                    for (var slotName in state.slots) {
-                        var avatar = state.entities[slotName];
-                        if (avatar && avatar.h < 32) alive++;
-                    }
-                    if (alive <= 1) state.end = state.t + shared.gp_round_end_duration;
-                } else if (state.t > state.end) stateSystem.goto(PrepareState);
-
-
-                // Send periodic snapshot to clients
-                if (tickCount % shared.sv_update_tick === 0) {
-                    sockets.emit("state", state);
-                    state.temporaryEntities = [];//flush the createTemporaryEntity queue
-                }
-
-            }, shared.sv_tick_period_ms
-        )
-        ;
-    }
-}
 /**
  * This is the game state
  */
@@ -162,9 +86,124 @@ function PrepareState() {
 }
 
 
+
 function PlayState() {
 
+    function SimulationSystem() {
+        var handle;
+        this.stop = function () {
+            clearInterval(handle);
+        };
+        this.start = function () {
+            var msCount = 0;
+            var tickCount = 0;
+            var world = {//World is a state decorated with functions
+                createEntity:function (key, entity) {
+                    state.entities[key] = entity;
+                }, destroyEntity:function (key) {
+                    delete state.entities[key];
+                }, createTemporaryEntity:function (entity) {
+                    state.temporaryEntities.push(entity);
+                }, burn:function (cell) {
+                    if (this.flame[cell] >= state.t) return false; // already burnt this frame
+                    this.flame[cell] = state.t;
+                    return true;
+                }, isburning:function (cell) {
+                    return this.flame[cell] >= state.t;
+                },
+                entities:state.entities,
+                flame:new Array(maps.width * maps.height)
+            }
+            handle = setInterval(function () {
+                    // There is no point here at beeing precice regarding the system clock.
+                    // I gain repetability with incrementing the round time by the tick period.
+                    state.t = msCount += shared.sv_tick_period_ms;
+                    tickCount++;
+                    world.entities = state.entities;
+
+                    // Display hurry at the end of the round time and reduce the map area
+                    if (!state.endGame && state.t > shared.gp_round_time) {
+                        state.endGame = tickCount;
+                        world.createTemporaryEntity({type:"hurry", ttl:1000});//display HURRY!
+                    }
+                    if (state.endGame) {
+                        var p = tickCount - state.endGame,cell;
+                        if (p % shared.gp_endgame_drop_period_tick === 0) {
+                            cell = endgame_sequence[p / shared.gp_endgame_drop_period_tick];
+                            if (cell) {
+                                world.burn(cell); // kill players on this cell if any
+                                world.createEntity(cell, {type:"dwall"}); // create a wall & replace the cell content
+                            }
+                        }
+                    }
+                    //Simulate every object
+                    for (var key in state.entities) {
+                        var entity = state.entities[key], onTick = shared.simulateOnTick[entity.type];
+                        if (onTick) onTick(state.t, key, entity, world);
+                    }
+                    // Detect when there is only one player
+                    if (!state.end) {
+                        var alive = 0;
+                        for (var slotName in state.slots) {
+                            var avatar = state.entities[slotName];
+                            if (avatar && avatar.h < 32) alive++;
+                        }
+                        if (alive <= 1) state.end = state.t + shared.gp_round_end_duration;
+                    } else if (state.t > state.end) stateSystem.goto(PrepareState);
+
+
+                    // Send periodic snapshot to clients
+                    if (tickCount % shared.sv_update_tick === 0) {
+                        sockets.emit("state", state);
+                        state.temporaryEntities = [];//flush the createTemporaryEntity queue
+                    }
+
+                }, shared.sv_tick_period_ms
+            );
+        }
+    }
     var simulationSystem = new SimulationSystem();
+
+
+    function PackerSystem() {
+        var reference;
+        var destructiveEq = function (l, r) {
+            for (var k in r) {
+                if (l[k] !== r[k]) return false;
+                delete l[k];
+            }
+            for (k in l) return false;
+            return true;
+        }
+
+        var computeObjectDelta = function (ref, value) {
+            var delta = {};
+            for (var key in value) {
+                var p = ref[key], v = value[key];
+                if (v === undefined) delete value[key]; // cleanup (no prototype around)
+                delete ref[key]; // remining keys he been deleted
+                // Handle kee add, kee assigned to undef, basic type switch
+                var type_of_v = typeof v;
+                if (p === undefined || destructive_eq(p, v) === false) {
+                    delta[key] = v;
+                }
+                // Detect keys in previous dant disapeared in the given value
+                for (var key in previous) delta[key] = undefined;
+                return delta;
+            }
+            return  delta;
+        }
+        this.setReference = function (value) {
+            reference = shared.clone();
+        }
+        this.computeDeltaAndSetReference = function (value) {
+            var delta = computeObjectDelta(reference, value);
+            reference = shared.clone();
+            return delta;
+        }
+    }
+    var packerSystem=new PackerSystem();
+
     this.enter = function () {
         state = {
             state:'play',
@@ -187,7 +226,7 @@ function PlayState() {
             if (!prop) return;
             if (prop.type === "spawn")
                 spawnPoints.push(index);
-            else
+            else //if (prop.type !== "wall")
                 state.entities[index] = shared.clone(prop);
         });
 

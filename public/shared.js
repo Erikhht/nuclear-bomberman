@@ -13,9 +13,9 @@ var shared = {
     gp_bomb_ttl_ms:1200,
     gp_flame_duration_ms:500,
     gp_power_up:{
-        pu_bomb:.05,
-        pu_flame:.04,
-        pu_skate:.03,
+        pu_bomb:.08,
+        pu_flame:.03,
+        pu_skate:.04,
         pu_disease:.02,
         pu_spooge:.02,
         pu_goldflame:.01,
@@ -30,10 +30,12 @@ var shared = {
     gp_ini_bomb_power:1,
     gp_ini_bomb_count:2, // number of bomb available at the beginning of a game
     bombTTLTick:100, // bomb duration in game tick
-    gp_ini_avatar_speed:.01, // bomberman speed in grid unity pe millisecond
+    gp_ini_avatar_speed:.008, // bomberman speed in grid unity pe millisecond
     gp_round_end_duration:3000,
-    gp_round_time:2*1000,
+    gp_round_time:200*1000,
     gp_endgame_drop_period_tick:4,
+    //
+    cl_local_hsl_transform:false,
     // gfx
     mapwidth:20,
     mapheight:16,
@@ -67,9 +69,9 @@ var KeyEvent = {
 };
 
 shared.avatarKeyMap = [
-    {up:KeyEvent.DOM_VK_UP, down:KeyEvent.DOM_VK_DOWN, left:KeyEvent.DOM_VK_LEFT, right:KeyEvent.DOM_VK_RIGHT, fire:KeyEvent.DOM_VK_SPACE},
-    {up:KeyEvent.DOM_VK_E, down:KeyEvent.DOM_VK_D, left:KeyEvent.DOM_VK_S, right:KeyEvent.DOM_VK_F},
-    {up:KeyEvent.DOM_VK_I, down:KeyEvent.DOM_VK_K, left:KeyEvent.DOM_VK_J, right:KeyEvent.DOM_VK_L}
+    {up:KeyEvent.DOM_VK_UP, down:KeyEvent.DOM_VK_DOWN, left:KeyEvent.DOM_VK_LEFT, right:KeyEvent.DOM_VK_RIGHT, fire:KeyEvent.DOM_VK_NUMPAD0},
+    {up:KeyEvent.DOM_VK_E, down:KeyEvent.DOM_VK_D, left:KeyEvent.DOM_VK_S, right:KeyEvent.DOM_VK_F, fire:KeyEvent.DOM_VK_SPACE},
+    {up:KeyEvent.DOM_VK_I, down:KeyEvent.DOM_VK_K, left:KeyEvent.DOM_VK_J, right:KeyEvent.DOM_VK_L, fire:KeyEvent.DOM_VK_ENTER}
 ];
 
 /**

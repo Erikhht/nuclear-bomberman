@@ -26,10 +26,12 @@ function startup() {
                     state_1 = queue[fromIdx + 1]; // if undefined -> no interpolation occurs
                     c = state_1 === undefined ? 0 : (lerpTime - state_0.t) / (state_1.t - state_0.t);
                     //Job done, let's discard old states when there are 16 or more
-                    if (fromIdx > 16)
+                    if (fromIdx > 16) {
                         queue.splice(0, fromIdx);
-                    metrics["state_log_size"] = queue.length;
-                    metrics["state_log_margin"] = queue.length - 1 - fromIdx - 1;
+                        fromIdx = 0;
+                    }
+                    metrics["state_log"] = "" + (queue.length - 1 - fromIdx - 1) + "/" + queue.length;
+
                     return;
                 }
             }
@@ -97,10 +99,26 @@ function startup() {
         };
 
         this.append = function (state) {
+
+            metrics["snapshot_jitter"]= state.t-(Date.now() - localState.startTime);
+
             //prevent dupplicate snapshot at the same time early the future division per zero in the interpolation coeficient.
             var last = this.last();
             if (last === undefined || state.t > last.t) queue.push(state);
         };
+
+        var patch = function (original, patch) {
+            for (var key in patch) {
+                var v = patch[key];
+                if (v === undefined) delete original[key];
+                else original[key] = v;
+            }
+        }
+
+        this.appendDelta = function (state_delta) {
+            var state = shared.clone(this.last());
+            patch(state.slots)
+        }
 
         this.interpolate = function (roundTime, interpolationTarget) {
             var prev_state_0 = state_0;
@@ -254,7 +272,7 @@ function startup() {
                 event.id = this.commandQueue.append(event);
                 socket.emit("player_cmd", event);
             }
-            metrics["command_queue_" + this.slot] = (this.commandQueue.length - this.commandQueue.firstPending) + "/" + this.commandQueue.length;
+            metrics[ this.slot + "_queue"] = (this.commandQueue.length - this.commandQueue.firstPending) + "/" + this.commandQueue.length;
             return somethingHappened
         };
         Object.freeze(this);
@@ -391,6 +409,7 @@ function startup() {
         pu_spooge:draw_cell_content,
         pu_goldflame:draw_cell_content,
         pu_grab:draw_cell_content,
+        dwall:draw_cell_content,
         hurry:function (clientRoundTime, gfx, cell, entity) {
             this.sprite(sprites, gfx.avatars, animations.hurry[0], 400, 300);
         },
@@ -578,28 +597,28 @@ function startup() {
         };
         this.go = function () {
             var idx = -1;
-            var waitAndContinue = function () {
-                setTimeout(continuation, 80);
-            };
             var continuation = function () {
                 if (idx < steps.length - 1) {
                     idx++;
                     var todo = steps[idx];
-                    progressHandler(todo.description, 0, steps.length - 1, idx);
-                    todo(waitAndContinue);
+                    progressHandler(steps[idx].description, 0, steps.length - 1, idx);
+                    setTimeout(function () {
+                        steps[idx](continuation);
+                    }, 80);
                 } else {
                     progressHandler("Done", 0, steps.length - 1, steps.length - 1);
                 }
             };
-            waitAndContinue();
+            continuation();
         };
+        console.log("[load] Loading sequence starts")
         Object.freeze(this);
     }
 
 
-    new LoadingSystem()
+    var loading = new LoadingSystem()
         .onProgress(function (desc, min, max, value) {
-            console.log("[" + value + "/" + max + "] " + desc);
+            console.log("[load] " + value + "/" + max + " " + desc);
             $("#loadingprogress").attr({min:min, max:max, value:value});
             $("#loadingstatus").text(desc);
         }).then("Load tiles",function (continuation) {
@@ -610,7 +629,7 @@ function startup() {
             $.ajax({
                 url:"maps.json",
                 success:function (data) {
-                    console.log("maps loaded with success");
+                    console.log("[load] maps loaded with success");
                     maps = data;
                     var control = $('#mapselect');
                     $.each(maps.layers, function (idx, element) {
@@ -622,7 +641,7 @@ function startup() {
                     alert("Failed to load maps.json");
                 }
             }).always(continuation);
-        }).then("Load animations",function (continuation) {
+        }).then("Load animations", function (continuation) {
             $.ajax({
                 url:"ani.json",
                 success:function (data) {
@@ -671,6 +690,7 @@ function startup() {
                         54:data["die green 23"].frames,
                         55:data["die green 24"].frames,
                         bomb:data["bomb regular green"].frames,
+                        dwall:data["tile 1 solid"].frames,
                         hurry:data["hurry"].frames,
                         crate:offset("tile 5 brick", -1, 2),
                         crateblast:offset("flame brick 5", -1, 2),
@@ -700,99 +720,110 @@ function startup() {
                     alert("Failed to load ani.json");
                 }
             }).always(continuation);
-        }).then("Load sprites",function (continuation) {
+        });
+
+
+    var slot_colors = {
+        slot0:{name:"magenta", hue:-180, lightness:22, saturation:-27},
+        slot1:{name:"red", hue:-120, lightness:20, saturation:-20},
+        slot2:{name:"orange", hue:-120, lightness:20, saturation:-20},
+        slot3:{name:"yellow", hue:-68, lightness:5, saturation:-5},
+        slot4:{name:"green", hue:-15, saturation:6, lightness:-20},
+        slot5:{name:"cyan", hue:60, saturation:0, lightness:-30},
+        slot6:{name:"blue", hue:98, saturation:16, lightness:-10},
+        slot7:{name:"purple", hue:145, saturation:42, lightness:-10},
+        slot8:{name:"black", hue:0, saturation:-100, lightness:-100},
+        slot9:{name:"white", hue:0, saturation:-100, lightness:100}
+    }
+    if (shared.cl_local_hsl_transform) {
+        loading.then("Load sprites",function (continuation) {
             csprites[undefined] = csprites.slot0 = sprites = new Image();
             sprites.onload = continuation;
             sprites.src = "sprites.png";
-        }).then("Build canvas",function (continuation) {
-            var canvas = document.createElement('canvas');
-            canvas.width = sprites.width;
-            canvas.height = sprites.height;
-            var ctx = canvas.getContext("2d");
-            ctx.drawImage(sprites, 0, 0);
-            sprites = canvas;
-            continuation();
-        }).then("Generate magenta sprites",function (continuation) {
-            csprites.slot0 = Pixastic.process(sprites, "hsl", {hue:-180, lightness:22, saturation:-27});
-            continuation();
-        }).then("Generate red sprites",function (continuation) {
-            csprites.slot1 = Pixastic.process(sprites, "hsl", {hue:-120, lightness:20, saturation:-20});
-            continuation();
-        }).then("Generate orange sprites",function (continuation) {
-            csprites.slot2 = Pixastic.process(sprites, "hsl", {hue:-100, lightness:10, saturation:-10});
-            continuation();
-        }).then("Generate yellow sprites",function (continuation) {
-            csprites.slot3 = Pixastic.process(sprites, "hsl", {hue:-68, lightness:5, saturation:-5});
-            continuation();
-        }).then("Generate green sprites",function (continuation) {
-            csprites.slot4 = Pixastic.process(sprites, "hsl", {hue:-15, saturation:6, lightness:-20});
-            continuation();
-        }).then("Generate cyan sprites",function (continuation) {
-            csprites.slot5 = Pixastic.process(sprites, "hsl", {hue:60, saturation:0, lightness:-30});
-            continuation();
-        }).then("Generate blue sprites",function (continuation) {
-            csprites.slot6 = Pixastic.process(sprites, "hsl", {hue:98, saturation:16, lightness:-10});
-            continuation();
-        }).then("Generate purple sprites",function (continuation) {
-            csprites.slot7 = Pixastic.process(sprites, "hsl", {hue:145, saturation:42, lightness:-10});
-            continuation();
-        }).then("Generate black sprites",function (continuation) {
-            csprites.slot8 = Pixastic.process(sprites, "hsl", {hue:0, saturation:-100, lightness:-100});
-            continuation();
-        }).then("Generate white sprites",function (continuation) {
-            csprites.slot9 = Pixastic.process(sprites, "hsl", {hue:0, saturation:-100, lightness:100});
-            continuation();
-        }).then("Connect to the server",function (continuation) {
-            socket = io.connect();
-            $(".outer").children().attr("class", "prepare");
-
-            socket.on('connecting', function (protocol) {
-                console.log("real time connection with a " + protocol);
+        }).then("Build canvas", function (continuation) {
+                var canvas = document.createElement('canvas');
+                canvas.width = sprites.width;
+                canvas.height = sprites.height;
+                var ctx = canvas.getContext("2d");
+                ctx.drawImage(sprites, 0, 0);
+                sprites = canvas;
+                continuation();
             });
+        for (var key in slot_colors)
+            var f = function (slotName, color) {
+                loading.then("Generate " + color.name + " sprites", function (continuation) {
+                    csprites[slotName] = Pixastic.process(sprites, "hsl", color);
+                    continuation();
+                });
+            }(key, slot_colors[key]);
+    } else {
+        loading.then("Load green sprites", function (continuation) {
+            csprites[undefined] = csprites.slot0 = sprites = new Image();
+            sprites.onload = continuation;
+            sprites.src = "sprites_green.png";
+        });
 
-            socket.on('connect', function () {
-                console.log("connection successful %o", socket);
-                pingHandler = setInterval(function () {
-                    if (pingStartMs === undefined || Date.now() - pingStartMs > 2 * pingPeriodMs) {
-                        pingStartMs = Date.now();
-                        socket.emit("ping");
-                    }
-                }, pingPeriodMs);
-            });
+        for (var key in slot_colors)
+            var f = function (slotName, color) {
+                loading.then("Load " + color.name + " sprites", function (continuation) {
+                    var img = csprites[slotName] = new Image();
+                    img.onload = continuation;
+                    img.src = "sprites_" + color.name + ".png";
+                });
+            }(key, slot_colors[key]);
+    }
 
-            socket.on('disconnect', function () {
-                console.log("Connection lost");
-                clearInterval(pingHandler = null);
-            });
+    loading.then("Connect to the server",function (continuation) {
+        socket = io.connect();
+        $(".outer").children().attr("class", "prepare");
 
-            socket.on("pong", function () {
-                var latency = Date.now() - pingStartMs;
-                socket.emit("pung");
-                metrics["latency"] = latency + "ms";
-            });
+        socket.on('connecting', function (protocol) {
+            console.log("real time connection with a " + protocol);
+        });
 
-            socket.on("set_session", function (newSid) {
-                console.log("session identifier is ", newSid);
-                sid = newSid;
-            });
-
-            socket.on('connect_failed', function (e) {
-                $("#websocketDown").text(e ? e : 'connection failed').dialog("open");
-            });
-
-            socket.on("state", function (newState) {
-                var prevState = sharedState;
-                sharedState = newState;
-                if (prevState.state !== sharedState.state) {
-                    $(".outer").children().attr("class", sharedState.state);
-                    onState[prevState.state].exit(prevState, sharedState);
-                    onState[sharedState.state].enter(prevState, sharedState);
+        socket.on('connect', function () {
+            console.log("connection successful %o", socket);
+            pingHandler = setInterval(function () {
+                if (pingStartMs === undefined || Date.now() - pingStartMs > 2 * pingPeriodMs) {
+                    pingStartMs = Date.now();
+                    socket.emit("ping");
                 }
-                onState[sharedState.state].update(prevState, sharedState);
-            });
+            }, pingPeriodMs);
+        });
 
-            continuation();
-        }).go();
+        socket.on('disconnect', function () {
+            console.log("Connection lost");
+            clearInterval(pingHandler = null);
+        });
+
+        socket.on("pong", function () {
+            var latency = Date.now() - pingStartMs;
+            socket.emit("pung");
+            metrics["latency"] = latency + "ms";
+        });
+
+        socket.on("set_session", function (newSid) {
+            console.log("session identifier is ", newSid);
+            sid = newSid;
+        });
+
+        socket.on('connect_failed', function (e) {
+            $("#websocketDown").text(e ? e : 'connection failed').dialog("open");
+        });
+
+        socket.on("state", function (newState) {
+            var prevState = sharedState;
+            sharedState = newState;
+            if (prevState.state !== sharedState.state) {
+                $(".outer").children().attr("class", sharedState.state);
+                onState[prevState.state].exit(prevState, sharedState);
+                onState[sharedState.state].enter(prevState, sharedState);
+            }
+            onState[sharedState.state].update(prevState, sharedState);
+        });
+
+        continuation();
+    }).go();
 
 
     $("#websocketDown").dialog(

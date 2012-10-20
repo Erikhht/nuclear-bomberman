@@ -34,28 +34,75 @@ body {
     border-radius: 5px;
     box-shadow: inset 0 5px 7px rgba(0, 0, 0, .50);
 }
+
 .board {
     width: 800px;
     height: 576px;
+}
+
+
+ol.slots > li#slot0 {
+    border-color: #ff00ff;
+}
+
+li#slot1 {
+    border-color: red;
+}
+
+li#slot2 {
+    border-color: orange;
+}
+
+li#slot3 {
+    border-color: #ffff00;
+}
+
+li#slot4 {
+    border-color: green;
+}
+
+li#slot5{
+    border-color: cyan;
+}
+
+li#slot6 {
+    border-color: blue;
+}
+
+li#slot7 {
+    border-color: purple;
+}
+
+li#slot8 {
+    border-color: black;
+}
+
+li#slot9 {
+    border-color: white ;
 }
 
 ol.slots {
     list-style-type: none;
     padding: 0 10px;
     margin: 0 0 0 0;
-
 }
 
 ol.slots >  li {
-    height: 35px;
+    height: 30.5px;
     width: 140px;
-    margin: 1.5px 8px 0 0;
+    margin: 2px 8px 3px 0;
     padding: 9px 5px;
     border: rgba(17, 109, 151, .0) solid 3px;
 }
+ol.slots > li.free:not(:hover) {
+    border-color: rgba(0, 0, 0, .0)  !important;
+}
+
+
 .iffree {
     cursor: default;
 }
+
 .iffree, .ifown, .ifother, .ifprepare, .ifplay, .ifload {
     display: none;
 }
@@ -65,25 +112,28 @@ ol.slots >  li {
 .prepare .other .ifother,
 .play .ifplay,
 .prepare .ifprepare,
-.load .ifload{
+.load .ifload {
     display: block;
 }
 
-li.free:hover {
-    border: rgba(17, 109, 151, .8) dotted 3px;
+ol.slots > li.own {
+    border-style: solid;
+    border-width: 3px;
 }
 
-li.free {
+li.free:hover {
+    border-style: dotted !important;
+    border-width: 3px;
+}
+
+li {
     color: #222;
     text-shadow: 0 2px 3px #666;
     text-align: center;
     font-family: Courier;
-    font-size: 40px;
+    font-size: 30px;
     font-weight: bold;
-
 }
-
-
 
 
 /* All HTML5 progress enabled browsers */
@@ -106,43 +156,38 @@ progress.example4 {
     width: 400px;
     height: 60px;
 }
+
 /* Polyfill */
 progress.example4[role]:after {
     background-image: none; /* removes default background from polyfill */
 }
+
 /*
- * Background of the progress bar background
- */
+* Background of the progress bar background
+*/
 
 /* Firefox and Polyfill */
 progress.example4 {
     background: #444444 !important; /* !important only needed in polyfill */
 }
+
 /* Chrome */
 progress.example4::-webkit-progress-bar {
     background: #444444;
 }
+
 /*
- * Background of the progress bar value
- */
+* Background of the progress bar value
+*/
 
 /* Firefox */
 progress.example4::-moz-progress-bar {
     border-radius: 5px;
-    background-image: -moz-linear-gradient(
-        -45deg,
-        rgba(255, 255, 255, .2) 25%,
-        transparent 25%,
-        transparent 50%,
-        rgba(255, 255, 255, .2) 50%,
-        rgba(255, 255, 255, .2) 75%,
-        transparent 75%,
-        transparent
-    );
+    background-image: -moz-linear-gradient(-45deg, rgba(255, 255, 255, .2) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, .2) 50%, rgba(255, 255, 255, .2) 75%, transparent 75%, transparent);
 }
 
-#loadingstatus{
-    font-size:20px;
+#loadingstatus {
+    font-size: 20px;
     color: white;
     text-align: center;
     margin: 20px;
