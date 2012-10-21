@@ -83,14 +83,24 @@
    </properties>
   </tile>
  </tileset>
- <layer name="warehouse" width="20" height="16" visible="0">
+ <layer name="warehouse" width="20" height="16">
   <data encoding="base64" compression="zlib">
-   eJztk8EKwDAIQ530/79510dQW5m7VfDSmBgJdTPz4Z4q6qlutSebpd4DfKGJu2Am3OjejFPtIvdEj3NdPeVUelp/5pH5O8kj8seMunl087157P3x7ev/mOwXOWwByA==
+   eJzFUdEKACEIm9L/f/M9XMJaWhcEJ0hUc07nAPxytp6GN1o/jf7iTYP/mc8F4wk+grFxVz7Ga8/Q6sj5DSOf6mpFXdWLdepcGZ/OUWEZV2lY8WV6Mz+AeQ+nflT6vvgBjHyBx6Zm1Stqs53e8KPa8V9+8Ly8g9WOTvzgXid+GOZ5b+YD7TICvw==
   </data>
  </layer>
- <layer name="funny" width="20" height="16">
+ <layer name="gold rush" width="20" height="16" visible="0">
   <data encoding="base64" compression="zlib">
-   eJzNVEEKACAIU+na/7/bVWQTJYkGO+R0LKRMRGyYizDTWL+fiTBQY4h+CBN+2vDzva/y7cJsZb/ML+6wmw/1/exXhfdjZEBaJ5+GswHt5r6VfN13n/0HkzzJFAHl
+   eJy1lNsKgDAMQ7vLq/7/5w5hg3KIu2ANlNRZYzKZ2cxycNVeyfXmWK1zvgo9D2qSOev1iLLJhPLHTKroc5W39OvrhelP5U0f/I1nd/3dh/6i9897Vv5W+zfL+9f33eFZXuLkfAyo8+vfZ7jHdc5Tjxrs6ZN99H/qqQbOfQMV
+  </data>
+ </layer>
+ <layer name="classic" width="20" height="16" visible="0">
+  <data encoding="base64" compression="zlib">
+   eJy9VFsKACAIW4/7nzkCPyRyKknBMErG2ioA6IWA1CbzSQDps9Y13x5D9lm1+nDwMV1RnHwRfax6+iy/XvRlfM3m6+VemW/EvxvYOX7n+3L/LF8yvkbyzbxrzVf5v1SOBeHoA1c=
+  </data>
+ </layer>
+ <layer name="funny" width="20" height="16" visible="0">
+  <data encoding="base64" compression="zlib">
+   eJytk1EKwCAMQ6vItp/t/sedwoQSmtoOH+RDakNotYpI3axG5NXY/dmDaL9i1Nl9y6+AX4RMPobOHfFrRi06v8iMMIe3X4+760nmQ3Teo+sktXlGP6bB9cnj7xy8PUXzWX0rvwHbsfXOsGe1D0Y0X/bfe+9lp142qgKD
   </data>
  </layer>
 </map>

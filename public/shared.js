@@ -39,7 +39,7 @@ var shared = {
     gp_ini_bomb_count:2, // number of bomb available at the beginning of a game
     bombTTLTick:100, // bomb duration in game tick
     gp_ini_avatar_speed:.008, // bomberman speed in grid unity pe millisecond
-    gp_round_end_duration:3000,
+    gp_round_end_duration:4000,
     gp_round_time:200*1000,
     gp_endgame_drop_period_tick:4
 };
@@ -67,11 +67,15 @@ var KeyEvent = {
     DOM_VK_BACK_QUOTE:192, DOM_VK_OPEN_BRACKET:219, DOM_VK_BACK_SLASH:220, DOM_VK_CLOSE_BRACKET:221, DOM_VK_QUOTE:222,
     DOM_VK_META:224
 };
-
+/**
+ * Keyboard mapping for players
+ * u: up / d: down / l: left / r: right / f: fire *
+ * @type {Array} of object
+ */
 shared.avatarKeyMap = [
-    {up:KeyEvent.DOM_VK_UP, down:KeyEvent.DOM_VK_DOWN, left:KeyEvent.DOM_VK_LEFT, right:KeyEvent.DOM_VK_RIGHT, fire:KeyEvent.DOM_VK_NUMPAD0},
-    {up:KeyEvent.DOM_VK_E, down:KeyEvent.DOM_VK_D, left:KeyEvent.DOM_VK_S, right:KeyEvent.DOM_VK_F, fire:KeyEvent.DOM_VK_SPACE},
-    {up:KeyEvent.DOM_VK_I, down:KeyEvent.DOM_VK_K, left:KeyEvent.DOM_VK_J, right:KeyEvent.DOM_VK_L, fire:KeyEvent.DOM_VK_ENTER}
+    {u:KeyEvent.DOM_VK_UP, d:KeyEvent.DOM_VK_DOWN, l:KeyEvent.DOM_VK_LEFT, r:KeyEvent.DOM_VK_RIGHT, f:KeyEvent.DOM_VK_NUMPAD0},
+    {u:KeyEvent.DOM_VK_E, d:KeyEvent.DOM_VK_D, l:KeyEvent.DOM_VK_S, r:KeyEvent.DOM_VK_F, f:KeyEvent.DOM_VK_SPACE},
+    {u:KeyEvent.DOM_VK_I, d:KeyEvent.DOM_VK_K, l:KeyEvent.DOM_VK_J, r:KeyEvent.DOM_VK_L, f:KeyEvent.DOM_VK_ENTER}
 ];
 
 /**
@@ -130,11 +134,11 @@ shared.updateAvatar = function (t, slotName, avatar, world, command) {
     if (avatar.h >= 32)// When it is dead
         return;
     var entities = world.entities;
-    var d = command.d;
-    var vx = ((command.right ? d : 0) - (command.left ? d : 0)) * avatar.s;
+    var d = command.e;
+    var vx = ((command.r ? d : 0) - (command.l ? d : 0)) * avatar.s;
     vx = Math.max(vx, -.5);
     vx = Math.min(vx, .5);
-    var vy = ((command.down ? d : 0) - (command.up ? d : 0)) * avatar.s;
+    var vy = ((command.d ? d : 0) - (command.u ? d : 0)) * avatar.s;
     vy = Math.max(vy, -.5);
     vy = Math.min(vy, .5);
     if (avatar.pu_disease > t) {// when undefined this is false
@@ -161,7 +165,7 @@ shared.updateAvatar = function (t, slotName, avatar, world, command) {
     var west = can_walk(entities[cell - 1]);
     var east = can_walk(entities[cell + 1]);
 
-    if (command.fire && avatar.rb > 0) {
+    if (command.f && avatar.rb > 0) {
         if (cell_entity === undefined) {
             avatar.rb--;
             world.createEntity(cell, {type:"bomb", et:t + shared.gp_bomb_ttl_ms, p:avatar.p, own:slotName});

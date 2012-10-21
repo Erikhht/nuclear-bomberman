@@ -100,7 +100,7 @@ function startup() {
 
         this.append = function (state) {
 
-            metrics["snapshot_jitter"]= state.t-(Date.now() - localState.startTime);
+            metrics["snapshot_jitter"] = state.t - (Date.now() - localState.startTime);
 
             //prevent dupplicate snapshot at the same time early the future division per zero in the interpolation coeficient.
             var last = this.last();
@@ -202,7 +202,7 @@ function startup() {
                 var t = sharedState.t;
                 for (var idx = commandQueue.firstPending; idx < commandQueue.length; idx++) {
                     curCommand = commandQueue[idx];
-                    t += curCommand.d;
+                    t += curCommand.e;
                     shared.updateAvatar(t, curSlotName, avatar, this, curCommand);
                 }
                 if (curCommand) predictionAcks[curSlotName] = curCommand.id;
@@ -258,7 +258,7 @@ function startup() {
         this.sampleInput = function (start, end) {
             // Sample inputs from the keyboard
             var somethingHappened = false;
-            var event = {d:end - start};
+            var event = {e:end - start};
             for (var k in keyListners) {
                 var press_time = keyListners[k].isPressed;
                 if (press_time) {
@@ -344,21 +344,24 @@ function startup() {
 
 
     function paintTiles(context, drawnSet) {
-        drawnSet = drawnSet || {wall:true, spawn:true, crate:true, undefined:true};
         //Find the map array definition
         var map = maps.layers[sharedState.mapIndex];
-        var p = 0;
+        var p = 0; //position in the map array
         var ymax = maps.height * maps.tileheight;
         var xmax = maps.width * maps.tilewidth;
-        var props = maps.tilesets[0].tileproperties;
+        var tileset = maps.tilesets[0];
+        var tilesetWidth = Math.floor(tileset.imagewidth / tileset.tilewidth);
+        var properties = tileset.tileproperties;
         for (var y = 0; y < ymax; y += maps.tileheight)
             for (var x = 0; x < xmax; x += maps.tilewidth) {
-                var idx = map.data[p++];
-                if (idx == 0)continue;
-                idx--;
-                var prop = props[idx];
-                if (drawnSet[prop ? prop.type : undefined])
-                    context.drawImage(tiles, maps.tilewidth * idx, 0, maps.tilewidth, maps.tileheight, x, y, maps.tilewidth, maps.tileheight);
+                var idx = map.data[p++] - tileset.firstgid;
+                if (idx < 0)continue;
+                var prop = properties[idx];
+                if ((!drawnSet) || drawnSet[prop ? prop.type : undefined]) {
+                    var tx = Math.floor(idx % tilesetWidth) * maps.tilewidth;// x&y position in pixel of the tile in the tileset
+                    var ty = Math.floor(idx / tilesetWidth) * maps.tileheight;
+                    context.drawImage(tiles, tx, ty, maps.tilewidth, maps.tileheight, x, y, maps.tilewidth, maps.tileheight);
+                }
             }
     }
 
@@ -529,6 +532,7 @@ function startup() {
         },
         prepare:{
             enter:function (prevState, newState) {
+                repaintPreview();
             },
             update:function (prevState, newState) {
                 if (prevState.mapIndex !== sharedState.mapIndex) {
@@ -570,9 +574,7 @@ function startup() {
     }
 
     function repaintPreview() {
-        // The load is incomplete fortunately, this method is called on state update and map load
-        if (maps === undefined || sharedState.mapIndex === undefined)
-            return;
+        if (!sharedState.mapIndex)return;
         var canvas = $("#preview")[0];
         var context = canvas.getContext('2d');
         context.setTransform(1, 0, 0, 1, 0, 0);
@@ -635,7 +637,6 @@ function startup() {
                     $.each(maps.layers, function (idx, element) {
                         control.append("<option value='" + idx + "'>" + element.name + "</option>");
                     });
-                    repaintPreview();
                 },
                 failure:function (data) {
                     alert("Failed to load maps.json");
