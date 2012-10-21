@@ -19,6 +19,14 @@ var app = connect()
 
 var appSrv = app.listen(process.env.PORT);
 var ioSrv = require('socket.io').listen(appSrv);
+ioSrv.enable('browser client minification');  // send minified client
+ioSrv.enable('browser client etag');          // apply etag caching logic based on version number
+ioSrv.enable('browser client gzip');          // gzip the file
+ioSrv.set('log level', 1);                    // reduce logging
+ioSrv.set('transports', ['websocket']);       // enable websocket only
+
+
+
 
 var endgame_sequence = function () {
     var seq = [];

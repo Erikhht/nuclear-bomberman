@@ -1,11 +1,19 @@
 "use strict";
 var shared = {
-    // Multiplayer
+    production:true,
+    mapwidth:20,
+    mapheight:16,
+    tilewidth:40,
+    tileheight:36,
+    frameRateMs:.02, // annimation frame per millisecond
+    // Client
     cl_draw_frame:false,
     cl_predict:true, // Client side prediction enable/disable
     cl_predict_respawn:true,
     cl_interp:true, // Client side interpolation enable/disable
     cl_interp_delay_ms:120, // Amount of ms the time is shifted back when the client continuously interpolate object position
+    cl_local_hsl_transform:false,
+    // Server
     sv_tick_period_ms:30, // Discrete simulation period, 30 ms = 33hz ( ~60 is ok)
     sv_update_tick:2, // Send an unpdate to the client every 2 ticks = 60 ms = 17 hz ( ~20 is ok)
     sv_disconnect_timeout:30 * 1000,
@@ -33,15 +41,7 @@ var shared = {
     gp_ini_avatar_speed:.008, // bomberman speed in grid unity pe millisecond
     gp_round_end_duration:3000,
     gp_round_time:200*1000,
-    gp_endgame_drop_period_tick:4,
-    //
-    cl_local_hsl_transform:false,
-    // gfx
-    mapwidth:20,
-    mapheight:16,
-    tilewidth:40,
-    tileheight:36,
-    frameRateMs:.02 // annimation frame per millisecond
+    gp_endgame_drop_period_tick:4
 };
 try {
     module.exports = shared;
