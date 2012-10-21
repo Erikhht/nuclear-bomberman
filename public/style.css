@@ -18,12 +18,15 @@ body {
 .outer {
     margin: 8px auto;
     width: 1024px;
-    height: 800px;
+    height: 600px;
 }
 
 .outer > div {
     display: inline-block;
     float: left;
+}
+div#metrics{
+
 }
 
 .pannel {

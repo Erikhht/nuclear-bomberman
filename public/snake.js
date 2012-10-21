@@ -7,10 +7,13 @@ function startup() {
 
 
 // Write sefull metrics in shit object to get a periodic dump to the console
-    var metrics = {};
-    setInterval(function () {
-        console.log(JSON.stringify(metrics));
-    }, 300);
+    var metrics = function(){
+        var metricsDiv = $("#metrics");
+        setInterval(function () {
+            metricsDiv.text(JSON.stringify(metrics));
+        }, 300);
+        return{};
+    }();
 
     function Interpolator() {
         var queue = [];
@@ -389,6 +392,8 @@ function startup() {
             var x = (avatar.x + xCenter) * maps.tilewidth;
             var y = (avatar.y + yCenter) * maps.tileheight;
             var ctx = gfx.avatars;
+            // When diseased the player color blink
+            slotName = avatar.pu_disease > clientRoundTime ? Math.floor(clientRoundTime / 100) % 10 : slotName;
             this.sprite(csprites[slotName], ctx, frame, x, y);
         },
         wall:function () {
@@ -724,54 +729,55 @@ function startup() {
         });
 
 
-    var slot_colors = {
-        slot0:{name:"magenta", hue:-180, lightness:22, saturation:-27},
-        slot1:{name:"red", hue:-120, lightness:20, saturation:-20},
-        slot2:{name:"orange", hue:-120, lightness:20, saturation:-20},
-        slot3:{name:"yellow", hue:-68, lightness:5, saturation:-5},
-        slot4:{name:"green", hue:-15, saturation:6, lightness:-20},
-        slot5:{name:"cyan", hue:60, saturation:0, lightness:-30},
-        slot6:{name:"blue", hue:98, saturation:16, lightness:-10},
-        slot7:{name:"purple", hue:145, saturation:42, lightness:-10},
-        slot8:{name:"black", hue:0, saturation:-100, lightness:-100},
-        slot9:{name:"white", hue:0, saturation:-100, lightness:100}
+    var loadImageAsCanvas = function (imageSource, continuation) {
+        var canvas = document.createElement('canvas');
+        var image = new Image();
+        image.onload = function () {
+            canvas.width = image.width;
+            canvas.height = image.height;
+            var ctx = canvas.getContext("2d");
+            ctx.drawImage(image, 0, 0);
+            continuation();
+        }
+        image.src = imageSource;// Go get the data!
+        return canvas;
     }
+
+    var slot_colors = [
+        {name:"magenta", hue:-180, lightness:22, saturation:-27},
+        {name:"red", hue:-120, lightness:20, saturation:-20},
+        {name:"orange", hue:-120, lightness:20, saturation:-20},
+        {name:"yellow", hue:-68, lightness:5, saturation:-5},
+        {name:"green", hue:-15, saturation:6, lightness:-20},
+        {name:"cyan", hue:60, saturation:0, lightness:-30},
+        {name:"blue", hue:98, saturation:16, lightness:-10},
+        {name:"purple", hue:145, saturation:42, lightness:-10},
+        {name:"black", hue:0, saturation:-100, lightness:-100},
+        {name:"white", hue:0, saturation:-100, lightness:100}
+    ];
     if (shared.cl_local_hsl_transform) {
-        loading.then("Load sprites",function (continuation) {
-            csprites[undefined] = csprites.slot0 = sprites = new Image();
-            sprites.onload = continuation;
-            sprites.src = "sprites.png";
-        }).then("Build canvas", function (continuation) {
-                var canvas = document.createElement('canvas');
-                canvas.width = sprites.width;
-                canvas.height = sprites.height;
-                var ctx = canvas.getContext("2d");
-                ctx.drawImage(sprites, 0, 0);
-                sprites = canvas;
-                continuation();
-            });
-        for (var key in slot_colors)
-            var f = function (slotName, color) {
+        loading.then("Load sprites", function (continuation) {
+            csprites[undefined] = sprites = loadImageAsCanvas("sprites.png", continuation);
+        });
+        for (var slotIdx = 0; slotIdx < slot_colors.length; slotIdx++)
+            (function (slotIdx, color) {
                 loading.then("Generate " + color.name + " sprites", function (continuation) {
-                    csprites[slotName] = Pixastic.process(sprites, "hsl", color);
+                    csprites[slotIdx] = csprites["slot" + slotIdx] = Pixastic.process(sprites, "hsl", color);
                     continuation();
                 });
-            }(key, slot_colors[key]);
+            }(slotIdx, slot_colors[slotIdx]));
     } else {
         loading.then("Load green sprites", function (continuation) {
-            csprites[undefined] = csprites.slot0 = sprites = new Image();
-            sprites.onload = continuation;
-            sprites.src = "sprites_green.png";
+            csprites[undefined] = sprites = loadImageAsCanvas("sprites.png", continuation);
         });
 
-        for (var key in slot_colors)
-            var f = function (slotName, color) {
+        for (var slotIdx = 0; slotIdx < slot_colors.length; slotIdx++)
+            ( function (slotIdx, color) {
                 loading.then("Load " + color.name + " sprites", function (continuation) {
-                    var img = csprites[slotName] = new Image();
-                    img.onload = continuation;
-                    img.src = "sprites_" + color.name + ".png";
+                    var slotName = "slot" + slotIdx, imageName = "sprites_" + color.name + ".png";
+                    csprites[slotIdx] = csprites[slotName] = loadImageAsCanvas(imageName, continuation);
                 });
-            }(key, slot_colors[key]);
+            }(slotIdx, slot_colors[slotIdx]));
     }
 
     loading.then("Connect to the server",function (continuation) {

@@ -3,7 +3,7 @@
 var settings = {
     maxAvatar:10,
     session:{ key:'sid', secret:'p/01>Hq#*[JL-JM'},
-    defaultNames:{slot0:"wilson", slot1:"alic", slot2:"bradley", slot3:"morten", slot4:"melanie", slot5:"ozzie", slot6:"nigel", slot7:"dudley", slot8:"paula", slot9:"adam"}
+    defaultNames:{slot0:"wilson", slot1:"alic", slot2:"bradley", slot3:"morten", slot4:"melanie", slot5:"ozzie", slot6:"nigel", slot7:"dudley", slot8:"paula", slot9:"adam"},
 };
 
 var shared = require("./public/shared.js");
@@ -227,11 +227,10 @@ function PlayState() {
 
         // Scan the map and collect spawn points coordinates
         var spawnPoints = [];
-        var tileProperties = maps.tilesets[0].tileproperties;
+        var tileProperties = maps.tilesets[0].tileproperties, tileOffset=maps.tilesets[0].firstgid;
         maps.layers[state.mapIndex].data.forEach(function (value, index) {
-            if (value === 0) return;
-            var prop = tileProperties[value - 1];
-            if (!prop) return;
+            var prop = tileProperties[value - tileOffset];
+            if (!prop) return; // Undefined object and empty cell
             if (prop.type === "spawn")
                 spawnPoints.push(index);
             else //if (prop.type !== "wall")
@@ -241,7 +240,7 @@ function PlayState() {
         // Spawn avatar for every owned slot
         for (var slotName in state.slots) {
             if (!state.slots[slotName].owner) continue;
-            var spawnCell = spawnPoints.splice(Math.floor(Math.random() * spawnPoints), 1)[0];
+            var spawnCell = spawnPoints.splice(Math.floor(Math.random() * spawnPoints.length), 1)[0];
             state.entities[slotName] = {
                 type:"avatar",
                 x:spawnCell % maps.width,
@@ -353,7 +352,6 @@ sockets.on('connection', function (socket) {
         }
         sockets.emit('state', state);
     });
-
 
     socket.on('set_player', function (data) {
         var slot = state.slots[data.slotName];

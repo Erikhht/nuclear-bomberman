@@ -1,6 +1,5 @@
 "use strict";
 var shared = {
-    production:true,
     mapwidth:20,
     mapheight:16,
     tilewidth:40,
@@ -12,7 +11,7 @@ var shared = {
     cl_predict_respawn:true,
     cl_interp:true, // Client side interpolation enable/disable
     cl_interp_delay_ms:120, // Amount of ms the time is shifted back when the client continuously interpolate object position
-    cl_local_hsl_transform:false,
+    cl_local_hsl_transform:false, //Generate the sprite sheets rather than download them
     // Server
     sv_tick_period_ms:30, // Discrete simulation period, 30 ms = 33hz ( ~60 is ok)
     sv_update_tick:2, // Send an unpdate to the client every 2 ticks = 60 ms = 17 hz ( ~20 is ok)

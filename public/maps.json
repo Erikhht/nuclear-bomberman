@@ -82,6 +82,10 @@
                 {
                  "type":"pu_punch"
                 },
+             "12":
+                {
+                 "type":"pu_bomb"
+                },
              "13":
                 {
                  "type":"pu_goldflame"
