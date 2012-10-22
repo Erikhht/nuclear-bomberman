@@ -5,12 +5,10 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
     <link rel="stylesheet" href="style.css" type="text/css"/>
-    <link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/themes/base/jquery-ui.css"
-          type="text/css"/>
-
+    <link rel="stylesheet" href="http://code.jquery.com/ui/1.9.0/themes/base/jquery-ui.css"/>
+    <script src="http://code.jquery.com/jquery-1.8.2.js"></script>
+    <script src="http://code.jquery.com/ui/1.9.0/jquery-ui.js"></script>
     <script src="/socket.io/socket.io.js"></script>
-    <script src="jquery-1.7.2.js"></script>
-    <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/jquery-ui.min.js"></script>
     <script src="pixastic.core.js"></script>
     <script src="hsl.js"></script>
     <script src="animationframe.js"></script>
@@ -28,14 +26,39 @@
                 <div id="loadingstatus">Loading...</div>
             </div>
             <div class="ifprepare">
-                <div>
-                    <canvas width="400" height="288" id="preview" style="margin:80px 200px"></canvas>
+                <div class="sticker">
+                    <h1>Join</h1>
+
+                    <p>Click on a free slot on the right.</p>
+
                 </div>
-                <div style="margin:0px 200px">
+                <div class="sticker">
+                    <h1>Player 1 controls</h1>
+
+                    <p>Move: up, down, left and right arrows</p>
+
+                    <p>Fire: space</p>
+                </div>
+                <div class="sticker">
+                    <h1>Player 2 controls</h1>
+
+                    <p>Move: E, D, S and F</p>
+
+                    <p>Fire: Q</p>
+                </div>
+                <div class="sticker">
+                    <h1>Player 3 controls</h1>
+
+                    <p>Move: I, K, J and L</p>
+
+                    <p>Fire: H</p>
+                </div>
+                <canvas width="400" height="288" id="preview"></canvas>
+
+                <div class='mapselect'>
                     <select id="mapselect" disabled="true"/>
                     <input id="startbutton" disabled="true" type="button" name="start" value="start"/>
                 </div>
-
             </div>
             <div class="ifplay">
                 <canvas id="board0" width="800" height="576" style="position: absolute; z-index: 1"></canvas>
@@ -112,6 +135,11 @@
 <div id="metrics"></div>
 <div id="websocketDown" title="Connection failed">You browser is unable to establish a connection to the server after 5
     attempts.
+</div>
+<div id="error" title="Gros Fail!">
+    The is absolutely no normal!
+    <pre></pre>
+    Please call apiBoy.
 </div>
 </body>
 </html>

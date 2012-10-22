@@ -16,8 +16,9 @@ var shared = {
     sv_tick_period_ms:30, // Discrete simulation period, 30 ms = 33hz ( ~60 is ok)
     sv_update_tick:2, // Send an unpdate to the client every 2 ticks = 60 ms = 17 hz ( ~20 is ok)
     sv_disconnect_timeout:30 * 1000,
+    sv_enable_delta_compression:true,
     // Gameplay
-    gp_bomb_ttl_ms:1200,
+    gp_bomb_ttl_ms:1600,
     gp_flame_duration_ms:500,
     gp_power_up:{
         pu_bomb:.08,
@@ -72,9 +73,9 @@ var KeyEvent = {
  * @type {Array} of object
  */
 shared.avatarKeyMap = [
-    {u:KeyEvent.DOM_VK_UP, d:KeyEvent.DOM_VK_DOWN, l:KeyEvent.DOM_VK_LEFT, r:KeyEvent.DOM_VK_RIGHT, f:KeyEvent.DOM_VK_NUMPAD0},
-    {u:KeyEvent.DOM_VK_E, d:KeyEvent.DOM_VK_D, l:KeyEvent.DOM_VK_S, r:KeyEvent.DOM_VK_F, f:KeyEvent.DOM_VK_SPACE},
-    {u:KeyEvent.DOM_VK_I, d:KeyEvent.DOM_VK_K, l:KeyEvent.DOM_VK_J, r:KeyEvent.DOM_VK_L, f:KeyEvent.DOM_VK_ENTER}
+    {u:KeyEvent.DOM_VK_UP, d:KeyEvent.DOM_VK_DOWN, l:KeyEvent.DOM_VK_LEFT, r:KeyEvent.DOM_VK_RIGHT, f:KeyEvent.DOM_VK_SPACE},
+    {u:KeyEvent.DOM_VK_E, d:KeyEvent.DOM_VK_D, l:KeyEvent.DOM_VK_S, r:KeyEvent.DOM_VK_F, f:KeyEvent.DOM_VK_Q},
+    {u:KeyEvent.DOM_VK_I, d:KeyEvent.DOM_VK_K, l:KeyEvent.DOM_VK_J, r:KeyEvent.DOM_VK_L, f:KeyEvent.DOM_VK_H}
 ];
 
 /**
@@ -168,7 +169,7 @@ shared.updateAvatar = function (t, slotName, avatar, world, command) {
         if (cell_entity === undefined) {
             avatar.rb--;
             world.createEntity(cell, {type:"bomb", et:t + shared.gp_bomb_ttl_ms, p:avatar.p, own:slotName});
-        } else if (avatar.pu_spooge && cell_entity.type === "bomb" && command.fire === 1) {
+        } else if (avatar.pu_spooge && cell_entity.type === "bomb" && command.f) {
             var c = cell;
             var d = directions[avatar.h % 4];
             while (avatar.rb > 0) {
@@ -303,7 +304,7 @@ shared.simulateOnTick = {
         var icx = Math.round(avatar.x);
         var icy = Math.round(avatar.y);
         var cell = icx + icy * shared.mapwidth;
-        if (world.isburning(cell)) {
+        if (world.isburning(cell) && avatar.h<32) { // a living avatar is dies
             avatar.h = 32 + Math.floor(Math.random() * 24);//random number [1,24]
             avatar.t0 = t;
         }

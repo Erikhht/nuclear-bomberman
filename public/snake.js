@@ -7,7 +7,7 @@ function startup() {
 
 
 // Write sefull metrics in shit object to get a periodic dump to the console
-    var metrics = function(){
+    var metrics = function () {
         var metricsDiv = $("#metrics");
         setInterval(function () {
             metricsDiv.text(JSON.stringify(metrics));
@@ -102,26 +102,11 @@ function startup() {
         };
 
         this.append = function (state) {
-
             metrics["snapshot_jitter"] = state.t - (Date.now() - localState.startTime);
-
             //prevent dupplicate snapshot at the same time early the future division per zero in the interpolation coeficient.
             var last = this.last();
             if (last === undefined || state.t > last.t) queue.push(state);
         };
-
-        var patch = function (original, patch) {
-            for (var key in patch) {
-                var v = patch[key];
-                if (v === undefined) delete original[key];
-                else original[key] = v;
-            }
-        }
-
-        this.appendDelta = function (state_delta) {
-            var state = shared.clone(this.last());
-            patch(state.slots)
-        }
 
         this.interpolate = function (roundTime, interpolationTarget) {
             var prev_state_0 = state_0;
@@ -491,6 +476,12 @@ function startup() {
 
     }
 
+
+    var countActiveSlots = function (slots) {
+        var count=0;
+        for( var key in slots) if(slots[key].owner)count++;
+        return count;
+    }
     var onState = {
         play:{
             enter:function (prevState, newState) {
@@ -540,12 +531,15 @@ function startup() {
                 repaintPreview();
             },
             update:function (prevState, newState) {
+                // Update the map preview
                 if (prevState.mapIndex !== sharedState.mapIndex) {
                     $("#mapselect").val(sharedState.mapIndex);
                     repaintPreview();
                 }
-
-                $(".board").find("input, select").attr("disabled", shared.masterSid(sharedState.slots) !== sid);
+                // Update the map selection list
+                var isMaster =shared.masterSid(sharedState.slots) !== sid;
+                $(".board").find("select").attr("disabled",isMaster );
+                $(".board").find("input").attr("disabled", isMaster || countActiveSlots(sharedState.slots)<2);
                 updatePlayerSlots();
             },
             exit:function (prevState, newState) {
@@ -588,7 +582,6 @@ function startup() {
         paintTiles(context);
     }
 
-
     function LoadingSystem() {
         var steps = [];
         var progressHandler = function (desc, min, max, value) {
@@ -621,7 +614,6 @@ function startup() {
         console.log("[load] Loading sequence starts")
         Object.freeze(this);
     }
-
 
     var loading = new LoadingSystem()
         .onProgress(function (desc, min, max, value) {
@@ -696,9 +688,9 @@ function startup() {
                         54:data["die green 23"].frames,
                         55:data["die green 24"].frames,
                         bomb:data["bomb regular green"].frames,
-                        dwall:data["tile 1 solid"].frames,
+                        dwall:offset("tile 1 solid", -1, 2),
                         hurry:data["hurry"].frames,
-                        crate:offset("tile 5 brick", -1, 2),
+                        crate:offset("tile 5 brick", -1, 3),
                         crateblast:offset("flame brick 5", -1, 2),
                         pu_bomb:offset("power bomb", 0, 2),
                         pu_flame:offset("power flame", 0, 2),
@@ -785,7 +777,7 @@ function startup() {
         $(".outer").children().attr("class", "prepare");
 
         socket.on('connecting', function (protocol) {
-            console.log("real time connection with a " + protocol);
+            console.log("Initiating a real time connection with a " + protocol);
         });
 
         socket.on('connect', function () {
@@ -818,12 +810,31 @@ function startup() {
             $("#websocketDown").text(e ? e : 'connection failed').dialog("open");
         });
 
+        function patch(delta, target) {
+            for (var key in delta) {
+                var newValue = delta[key];
+                if (newValue === null) delete target[key]; else target[key] = newValue;
+            }
+        }
+
+        socket.on("delta", function (deltaState) {
+            if (sharedState.state !== "play") {
+                console.error("Unexpected incomming delta");
+                return;
+            }
+            sharedState=shared.clone(sharedState); //Renew the reference, unfortunately this is required to avoid mutating a stored previous state
+            patch(deltaState, sharedState);
+            patch(deltaState.delta, sharedState.entities);
+            onState.play.update(null, sharedState); // the update of the play sequence does not use the "prevState"
+        });
+
         socket.on("state", function (newState) {
             var prevState = sharedState;
             sharedState = newState;
             if (prevState.state !== sharedState.state) {
                 $(".outer").children().attr("class", sharedState.state);
                 onState[prevState.state].exit(prevState, sharedState);
+                metrics = {}; // clear metrics
                 onState[sharedState.state].enter(prevState, sharedState);
             }
             onState[sharedState.state].update(prevState, sharedState);
@@ -831,12 +842,6 @@ function startup() {
 
         continuation();
     }).go();
-
-
-    $("#websocketDown").dialog(
-        { autoOpen:false, modal:true, buttons:{ "Ok":function () {
-            $(this).dialog("close");
-        } } });
 
     $("div.iffree").click(function () {
         //The user claims for an empty slot.
@@ -875,10 +880,23 @@ function startup() {
     $("#startbutton").click(function () {
         socket.emit("start_round");
     });
-
-
 }
 
-$().ready(startup);
+$().ready(function(){
+    $("#websocketDown").dialog(
+        { autoOpen:false, modal:true, buttons:{ "Ok":function () {
+            $(this).dialog("close");
+        } } });
+    $("#error").dialog(
+        { autoOpen:false, modal:true, buttons:{ "Ok":function () {
+            $(this).dialog("close");
+        } } });
+    try{
+        startup()
+    }catch(err){
+        $("#error>pre").text(err);
+        $("#error").dialog("open");
+    }
+});
 
 

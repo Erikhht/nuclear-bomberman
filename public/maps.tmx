@@ -88,7 +88,7 @@
    </properties>
   </tile>
  </tileset>
- <layer name="warehouse" width="20" height="16">
+ <layer name="warehouse" width="20" height="16" visible="0">
   <data encoding="base64" compression="zlib">
    eJzFUdEKACEIm9L/f/M9XMJaWhcEJ0hUc07nAPxytp6GN1o/jf7iTYP/mc8F4wk+grFxVz7Ga8/Q6sj5DSOf6mpFXdWLdepcGZ/OUWEZV2lY8WV6Mz+AeQ+nflT6vvgBjHyBx6Zm1Stqs53e8KPa8V9+8Ly8g9WOTvzgXid+GOZ5b+YD7TICvw==
   </data>
@@ -103,9 +103,9 @@
    eJy9VFsKACAIW4/7nzkCPyRyKknBMErG2ioA6IWA1CbzSQDps9Y13x5D9lm1+nDwMV1RnHwRfax6+iy/XvRlfM3m6+VemW/EvxvYOX7n+3L/LF8yvkbyzbxrzVf5v1SOBeHoA1c=
   </data>
  </layer>
- <layer name="funny" width="20" height="16" visible="0">
+ <layer name="funny" width="20" height="16">
   <data encoding="base64" compression="zlib">
-   eJytk1EKwCAMQ6vItp/t/sedwoQSmtoOH+RDakNotYpI3axG5NXY/dmDaL9i1Nl9y6+AX4RMPobOHfFrRi06v8iMMIe3X4+760nmQ3Teo+sktXlGP6bB9cnj7xy8PUXzWX0rvwHbsfXOsGe1D0Y0X/bfe+9lp142qgKD
+   eJytk0sKwCAMRKNIWxft/Y9bhQohZPIpPpiFxAxDopWI6mY1IKuG7q8eCfcrSh3d1/yK8IuQyYfguSN+TalF5+fNqCs5rP1a3ENPMp+E5z2GTlBbZ+mHNLk+Wfydg7WnaD6tz/OboB1r70z2ePtARPNl/731XnbqBVFiAow=
   </data>
  </layer>
 </map>

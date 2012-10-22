@@ -1,7 +1,6 @@
 "use strict";
 
 var settings = {
-    maxAvatar:10,
     session:{ key:'sid', secret:'p/01>Hq#*[JL-JM'},
     defaultNames:{slot0:"wilson", slot1:"alic", slot2:"bradley", slot3:"morten", slot4:"melanie", slot5:"ozzie", slot6:"nigel", slot7:"dudley", slot8:"paula", slot9:"adam"},
 };
@@ -19,13 +18,11 @@ var app = connect()
 
 var appSrv = app.listen(process.env.PORT);
 var ioSrv = require('socket.io').listen(appSrv);
-ioSrv.enable('browser client minification');  // send minified client
-ioSrv.enable('browser client etag');          // apply etag caching logic based on version number
-ioSrv.enable('browser client gzip');          // gzip the file
-ioSrv.set('log level', 1);                    // reduce logging
-ioSrv.set('transports', ['websocket']);       // enable websocket only
-
-
+//ioSrv.enable('browser client minification');  // send minified client
+ioSrv.enable('browser client etag');            // apply etag caching logic based on version number
+ioSrv.enable('browser client gzip');            // gzip the file
+//ioSrv.set('log level', 1);                    // reduce logging
+ioSrv.set('transports', ['websocket']);         // enable websocket only
 
 
 var endgame_sequence = function () {
@@ -94,7 +91,6 @@ function PrepareState() {
 }
 
 
-
 function PlayState() {
 
     function SimulationSystem() {
@@ -134,9 +130,9 @@ function PlayState() {
                         state.endGame = tickCount;
                         world.createTemporaryEntity({type:"hurry", ttl:1000});//display HURRY!
                     }
-                    if (state.endGame) {
-                        var p = tickCount - state.endGame,cell;
-                        if (p % shared.gp_endgame_drop_period_tick === 0) {
+                    if (state.endGame) { // Restrict the game area
+                        var p = tickCount - state.endGame, cell;
+                        if (p % shared.gp_endgame_drop_period_tick === 0) { // Time to add a block !
                             cell = endgame_sequence[p / shared.gp_endgame_drop_period_tick];
                             if (cell) {
                                 world.burn(cell); // kill players on this cell if any
@@ -159,10 +155,19 @@ function PlayState() {
                         if (alive <= 1) state.end = state.t + shared.gp_round_end_duration;
                     } else if (state.t > state.end) stateSystem.goto(PrepareState);
 
-
                     // Send periodic snapshot to clients
                     if (tickCount % shared.sv_update_tick === 0) {
-                        sockets.emit("state", state);
+                        if (shared.sv_enable_delta_compression) {
+                            var delta = {
+                                t:state.t,
+                                acks:state.acks,
+                                delta:deltaSystem.computeDeltaAndSetReference(state.entities),
+                                temporaryEntities:state.temporaryEntities
+                            }
+                            sockets.emit("delta", delta);
+                        } else {
+                            sockets.emit("state", state);
+                        }
                         state.temporaryEntities = [];//flush the createTemporaryEntity queue
                     }
 
@@ -170,47 +175,46 @@ function PlayState() {
             );
         }
     }
+
     var simulationSystem = new SimulationSystem();
 
 
-    function PackerSystem() {
-        var reference;
-        var destructiveEq = function (l, r) {
-            for (var k in r) {
-                if (l[k] !== r[k]) return false;
-                delete l[k];
+    function DeltaSystem(initialReference) {
+        var reference = shared.clone(initialReference);
+        var destructiveShallowEq = function (ref, val) {
+            for (var k in val) {
+                if (ref[k] !== val[k]) return false;
+                delete ref[k];
             }
-            for (k in l) return false;
+            for (k in ref) return false;
             return true;
         }
 
-        var computeObjectDelta = function (ref, value) {
-            var delta = {};
+        /**
+         *
+         * @param ref object whose values are flat object. Prototypes not supported. This object is destroyed by the delta.
+         * @param value object whose values are flat object.  Prototypes not supported. Undefined values are removed.
+         * @return {Object}
+         */
+        var computeDestructiveShallowDelta = function (ref, value) {
+            var delta = {}; // the result
             for (var key in value) {
                 var p = ref[key], v = value[key];
-                if (v === undefined) delete value[key]; // cleanup (no prototype around)
-                delete ref[key]; // remining keys he been deleted
-                // Handle kee add, kee assigned to undef, basic type switch
-                var type_of_v = typeof v;
-                if (p === undefined || destructive_eq(p, v) === false) {
-                    delta[key] = v;
-                }
-                // Detect keys in previous dant disapeared in the given value
-                for (var key in previous) delta[key] = undefined;
-                return delta;
+                if (v === undefined) delete value[key]; // cleanup undefined values (no prototype around)
+                delete ref[key]; // we rely later on the keys remaining in the reference
+                if (p === undefined || destructiveShallowEq(p, v) === false) delta[key] = v;
             }
-            return  delta;
-        }
-        this.setReference = function (value) {
-            reference = shared.clone();
+            for (var key in ref) delta[key] = null; // Detect keys that disapeared from ref to value
+            return delta;
         }
         this.computeDeltaAndSetReference = function (value) {
-            var delta = computeObjectDelta(reference, value);
-            reference = shared.clone();
+            var delta = computeDestructiveShallowDelta(reference, value);
+            reference = shared.clone(value);
             return delta;
         }
     }
-    var packerSystem=new PackerSystem();
+
+    var deltaSystem;
 
     this.enter = function () {
         state = {
@@ -221,13 +225,12 @@ function PlayState() {
             acks:{},
             entities:{},
             temporaryEntities:[]
-        }
-
+        };
         simulationSystem.start();
 
         // Scan the map and collect spawn points coordinates
         var spawnPoints = [];
-        var tileProperties = maps.tilesets[0].tileproperties, tileOffset=maps.tilesets[0].firstgid;
+        var tileProperties = maps.tilesets[0].tileproperties, tileOffset = maps.tilesets[0].firstgid;
         maps.layers[state.mapIndex].data.forEach(function (value, index) {
             var prop = tileProperties[value - tileOffset];
             if (!prop) return; // Undefined object and empty cell
@@ -251,6 +254,7 @@ function PlayState() {
                 s:shared.gp_ini_avatar_speed //speed
             }
         }
+        if (shared.sv_enable_delta_compression) deltaSystem = new DeltaSystem(state.entities);
         sockets.emit('state', state);
     };
     this.exit = function () {
@@ -278,8 +282,8 @@ ioSrv.set('authorization', function (data, accept) {
     // accept the incoming connection
     accept(null, true);
 });
-var sockets = ioSrv.sockets;
 
+var sockets = ioSrv.sockets;
 stateSystem.goto(StartupState);
 
 function PlayerCleaner() {
