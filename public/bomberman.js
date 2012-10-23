@@ -34,7 +34,6 @@ function startup() {
                         fromIdx = 0;
                     }
                     metrics["state_log"] = "" + (queue.length - 1 - fromIdx - 1) + "/" + queue.length;
-
                     return;
                 }
             }
@@ -206,8 +205,6 @@ function startup() {
         }
     }
 
-
-// please
     var socket;
 
     /**
@@ -478,8 +475,8 @@ function startup() {
 
 
     var countActiveSlots = function (slots) {
-        var count=0;
-        for( var key in slots) if(slots[key].owner)count++;
+        var count = 0;
+        for (var key in slots) if (slots[key].owner)count++;
         return count;
     }
     var onState = {
@@ -537,9 +534,9 @@ function startup() {
                     repaintPreview();
                 }
                 // Update the map selection list
-                var isMaster =shared.masterSid(sharedState.slots) !== sid;
-                $(".board").find("select").attr("disabled",isMaster );
-                $(".board").find("input").attr("disabled", isMaster || countActiveSlots(sharedState.slots)<2);
+                var isMaster = shared.masterSid(sharedState.slots) !== sid;
+                $(".board").find("select").attr("disabled", isMaster);
+                $(".board").find("input").attr("disabled", isMaster || countActiveSlots(sharedState.slots) < 2);
                 updatePlayerSlots();
             },
             exit:function (prevState, newState) {
@@ -564,10 +561,13 @@ function startup() {
             } else {
                 $(this).attr("class", "other");
             }
+
             var inputElement = $(this).find("input");
-            inputElement.attr("value", slot.name);
-            if (requestForcusAndSelect)
-                inputElement.focus().select();
+            if (inputElement.is(":focus") == false) {
+                inputElement.attr("value", slot.name);
+                if (requestForcusAndSelect)
+                    inputElement.focus().select();
+            }
             $(this).find("div.ifother").text(slot.name || "");
         });
     }
@@ -620,11 +620,11 @@ function startup() {
             console.log("[load] " + value + "/" + max + " " + desc);
             $("#loadingprogress").attr({min:min, max:max, value:value});
             $("#loadingstatus").text(desc);
-        }).then("Load tiles",function (continuation) {
+        }).then("Loading tiles",function (continuation) {
             tiles = new Image();
             tiles.onload = continuation;
             tiles.src = "tiles.png";
-        }).then("Load maps",function (continuation) {
+        }).then("Loading maps",function (continuation) {
             $.ajax({
                 url:"maps.json",
                 success:function (data) {
@@ -639,7 +639,7 @@ function startup() {
                     alert("Failed to load maps.json");
                 }
             }).always(continuation);
-        }).then("Load animations", function (continuation) {
+        }).then("Loading animations", function (continuation) {
             $.ajax({
                 url:"ani.json",
                 success:function (data) {
@@ -748,7 +748,7 @@ function startup() {
         {name:"white", hue:0, saturation:-100, lightness:100}
     ];
     if (shared.cl_local_hsl_transform) {
-        loading.then("Load sprites", function (continuation) {
+        loading.then("Loading sprites", function (continuation) {
             csprites[undefined] = sprites = loadImageAsCanvas("sprites.png", continuation);
         });
         for (var slotIdx = 0; slotIdx < slot_colors.length; slotIdx++)
@@ -759,13 +759,13 @@ function startup() {
                 });
             }(slotIdx, slot_colors[slotIdx]));
     } else {
-        loading.then("Load green sprites", function (continuation) {
+        loading.then("Loading green sprites", function (continuation) {
             csprites[undefined] = sprites = loadImageAsCanvas("sprites.png", continuation);
         });
 
         for (var slotIdx = 0; slotIdx < slot_colors.length; slotIdx++)
             ( function (slotIdx, color) {
-                loading.then("Load " + color.name + " sprites", function (continuation) {
+                loading.then("Loading " + color.name + " sprites", function (continuation) {
                     var slotName = "slot" + slotIdx, imageName = "sprites_" + color.name + ".png";
                     csprites[slotIdx] = csprites[slotName] = loadImageAsCanvas(imageName, continuation);
                 });
@@ -807,7 +807,8 @@ function startup() {
         });
 
         socket.on('connect_failed', function (e) {
-            $("#websocketDown").text(e ? e : 'connection failed').dialog("open");
+            $("#websocketDown").text(e ? e : 'Failed to establish a realtime connection to the server.<br/>'+
+                'If you network is configured wth IPv6 rey to enter the IPv4 of the server.').dialog("open");
         });
 
         function patch(delta, target) {
@@ -822,7 +823,7 @@ function startup() {
                 console.error("Unexpected incomming delta");
                 return;
             }
-            sharedState=shared.clone(sharedState); //Renew the reference, unfortunately this is required to avoid mutating a stored previous state
+            sharedState = shared.clone(sharedState); //Renew the reference, unfortunately this is required to avoid mutating a stored previous state
             patch(deltaState, sharedState);
             patch(deltaState.delta, sharedState.entities);
             onState.play.update(null, sharedState); // the update of the play sequence does not use the "prevState"
@@ -882,7 +883,7 @@ function startup() {
     });
 }
 
-$().ready(function(){
+$().ready(function () {
     $("#websocketDown").dialog(
         { autoOpen:false, modal:true, buttons:{ "Ok":function () {
             $(this).dialog("close");
@@ -891,9 +892,9 @@ $().ready(function(){
         { autoOpen:false, modal:true, buttons:{ "Ok":function () {
             $(this).dialog("close");
         } } });
-    try{
+    try {
         startup()
-    }catch(err){
+    } catch (err) {
         $("#error>pre").text(err);
         $("#error").dialog("open");
     }

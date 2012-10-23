@@ -15,7 +15,7 @@ var shared = {
     // Server
     sv_tick_period_ms:30, // Discrete simulation period, 30 ms = 33hz ( ~60 is ok)
     sv_update_tick:2, // Send an unpdate to the client every 2 ticks = 60 ms = 17 hz ( ~20 is ok)
-    sv_disconnect_timeout:30 * 1000,
+    sv_disconnect_timeout:15 * 1000,
     sv_enable_delta_compression:true,
     // Gameplay
     gp_bomb_ttl_ms:1600,

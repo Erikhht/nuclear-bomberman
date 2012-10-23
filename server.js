@@ -14,7 +14,9 @@ var app = connect()
     .use(connect.logger())
     .use(connect.cookieParser(settings.session.secret))
     .use(connect.session(settings.session))
-    .use(connect.static('public'));
+    .use(connect.static('public'))
+    ;
+
 
 var appSrv = app.listen(process.env.PORT);
 var ioSrv = require('socket.io').listen(appSrv);

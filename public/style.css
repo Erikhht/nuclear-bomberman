@@ -27,7 +27,15 @@ body {
 }
 
 div#metrics {
-
+    height: 3em;
+    border-radius: 10px;
+    background-color: #9a9a9a;
+    position: absolute;
+    bottom: 10px;
+    margin: 5px;
+    padding:5px;
+    left:10px;
+    right:10px;
 }
 
 .pannel {
@@ -39,10 +47,36 @@ div#metrics {
     box-shadow: inset 0 5px 7px rgba(0, 0, 0, .50);
 }
 
-.board {
+div.board  {
+    position: relative;
     width: 800px;
     height: 576px;
 }
+
+div.ifload{
+    position: relative;
+}
+div.board  div.ifload  progress, div.board  div.ifload  div#loadingstatus {
+    position: absolute;
+    top: 250px;
+    left: 200px;
+    width: 400px;
+    height: 60px;
+}
+div.board  div.ifload  progress{
+    z-index: 0;
+}
+
+div.board  div.ifload  div#loadingstatus {
+    z-index: 1;
+    vertical-align: middle;
+    font-size: 28px;
+    color: white;
+    text-align: center;
+    margin-top:15px;
+    text-shadow: 0 2px 3px #666;
+}
+
 
 ol.slots > li#slot0 {
     border-color: #ff00ff;
@@ -140,7 +174,6 @@ ol.slots > li {
 
 /* All HTML5 progress enabled browsers */
 
-
 /* All HTML5 progress enabled browsers */
 progress.example4 {
 
@@ -148,66 +181,44 @@ progress.example4 {
     appearance: none;
     -moz-appearance: none;
     -webkit-appearance: none;
+    box-shadow: 5px 5px 7px rgba(33, 33, 33, .7);
     /* gets rid of default border in Firefox and Opera. */
     border: solid #aaaaaa 5px;
     border-radius: 10px;
-    /* Dimensions */
-    width: 400px;
-    height: 60px;
 }
 
-/* Polyfill */
-progress.example4[role]:after {
-    background-image: none; /* removes default background from polyfill */
-}
-
-/*
-* Background of the progress bar background
-*/
-
-/* Firefox and Polyfill */
 progress.example4 {
     background: #444444 !important; /* !important only needed in polyfill */
 }
 
-/* Chrome */
 progress.example4::-webkit-progress-bar {
     background: #444444;
 }
-
-/*
-* Background of the progress bar value
-*/
-
 /* Firefox */
 progress.example4::-moz-progress-bar {
     border-radius: 5px;
     background-image: -moz-linear-gradient(-45deg, rgba(255, 255, 255, .2) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, .2) 50%, rgba(255, 255, 255, .2) 75%, transparent 75%, transparent);
 }
 
-#loadingstatus {
-    font-size: 28px;
-    color: white;
-    text-align: center;
-    margin: 20px;
-    text-shadow: 0 2px 3px #666;
 
-}
 
 div.ifprepare {
     position: relative;
 }
-div.ifprepare canvas{
-    top:60px;
-    right:100px;
-    position:absolute;
+
+div.ifprepare canvas {
+    top: 60px;
+    right: 100px;
+    position: absolute;
 }
-div.ifprepare div.mapselect{
-    top:380px;
-    right:100px;
-    position:absolute;
+
+div.ifprepare div.mapselect {
+    top: 380px;
+    right: 100px;
+    position: absolute;
 }
-div.ifprepare div.mapselect select,div.ifprepare div.mapselect input {
+
+div.ifprepare div.mapselect select, div.ifprepare div.mapselect input {
     font-size: 1.2em;
 }
 
@@ -241,22 +252,30 @@ div.sticker p {
 }
 
 div.sticker:nth-child(1) {
+    background: #c0f4de;
     top: 50px;
     left: 50px;
     -webkit-transform: rotate(7deg);
+    -moz-transform: rotate(7deg);
 }
+
 div.sticker:nth-child(2) {
     top: 230px;
     left: 50px;
     -webkit-transform: rotate(-5deg);
+    -moz-transform: rotate(-5deg);
 }
+
 div.sticker:nth-child(3) {
     top: 400px;
     left: 50px;
     -webkit-transform: rotate(3deg);
+    -moz-transform: rotate(3deg);
 }
+
 div.sticker:nth-child(4) {
     top: 410px;
     left: 280px;
     -webkit-transform: rotate(-2deg);
+    -moz-transform: rotate(-2deg);
 }
