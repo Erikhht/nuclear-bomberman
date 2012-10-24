@@ -169,7 +169,7 @@ shared.updateAvatar = function (t, slotName, avatar, world, command) {
         if (cell_entity === undefined) {
             avatar.rb--;
             world.createEntity(cell, {type:"bomb", et:t + shared.gp_bomb_ttl_ms, p:avatar.p, own:slotName});
-        } else if (avatar.pu_spooge && cell_entity.type === "bomb" && command.f) {
+        } else if (avatar.pu_spooge && cell_entity.type === "bomb" && command.f=== 1) {
             var c = cell;
             var d = directions[avatar.h % 4];
             while (avatar.rb > 0) {
