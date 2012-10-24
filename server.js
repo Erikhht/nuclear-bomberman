@@ -12,10 +12,15 @@ var cookie = require('./node_modules/connect/node_modules/cookie');
 
 var app = connect()
     .use(connect.logger())
+    .use(connect.favicon("public/favicon.ico"))
     .use(connect.cookieParser(settings.session.secret))
     .use(connect.session(settings.session))
     .use(connect.static('public'))
-    ;
+    .use(function (req, res, next) {
+        if (req.url !== "/") next();
+        res.writeHead(302, {'Location':'/bomberman.html'});
+        res.end();
+    });
 
 
 var appSrv = app.listen(process.env.PORT);
