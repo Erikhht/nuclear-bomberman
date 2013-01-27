@@ -1,6 +1,7 @@
 "use strict";
 
 var settings = {
+    port:8080,
     session:{ key:'sid', secret:'p/01>Hq#*[JL-JM'},
     defaultNames:{slot0:"wilson", slot1:"alic", slot2:"bradley", slot3:"morten", slot4:"melanie", slot5:"ozzie", slot6:"nigel", slot7:"dudley", slot8:"paula", slot9:"adam"},
 };
@@ -22,15 +23,18 @@ var app = connect()
         res.end();
     });
 
+console.info("\n\u001b[1mNuclear Bomberman v0.1 - http://code.google.com/p/nuclear-bomberman/\u001b[0m");
+console.info("\n\u001b[36m | Server listening on port "+settings.port+".\u001b[0m");
+console.info("\u001b[36m | Connect to your ip with a chrome of firefox browser.\u001b[0m");
+console.info("\u001b[36m | Close this window to stop the server.\u001b[0m\n");
 
-var appSrv = app.listen(process.env.PORT);
+var appSrv = app.listen(settings.port);
 var ioSrv = require('socket.io').listen(appSrv);
-//ioSrv.enable('browser client minification');  // send minified client
+ioSrv.enable('browser client minification');    // send minified client
 ioSrv.enable('browser client etag');            // apply etag caching logic based on version number
 ioSrv.enable('browser client gzip');            // gzip the file
-//ioSrv.set('log level', 1);                    // reduce logging
-ioSrv.set('transports', ['websocket']);         // enable websocket only
-
+ioSrv.set('log level', 1);                      // reduce logging
+ioSrv.set('transports', ['xhr-polling']);         // enable websocket only
 
 var endgame_sequence = function () {
     var seq = [];

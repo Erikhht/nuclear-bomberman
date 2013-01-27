@@ -1,0 +1,37 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <title>Measure responsiveness</title>
+    <style>
+        div.flash {
+            width: 256px;
+            height:256px;
+            border-width: 1px;
+            border-color: #000000;
+            border-style: solid;
+            background-color: blue;
+        }
+        div.goal {
+            background-color: red;
+        }
+    </style>
+    <script src="http://code.jquery.com/jquery-1.8.2.js"></script>
+    <script type="text/javascript">
+        $(function(){
+            var flashDiv = $("div");
+            window.addEventListener('keyup', function (event) {
+                flashDiv.removeClass("goal");
+            }, true);
+            window.addEventListener('keydown', function (event) {
+                setTimeout(function(){flashDiv.addClass("goal")},106);
+
+            }, true);
+        })
+
+    </script>
+</head>
+<body>
+    <div class="flash"></div>
+</body>
+</html>

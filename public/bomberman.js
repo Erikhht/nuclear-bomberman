@@ -15,7 +15,7 @@ function startup() {
         return{};
     }();
 
-    function Interpolator() {
+    function InterpolationSystem() {
         var queue = [];
         var state_0 = undefined;
         var state_1 = undefined;
@@ -82,6 +82,15 @@ function startup() {
                 return pos_c;
             }
         };
+        // linear position interpolation makes the oponents avatar float and run around the corner
+        if(false)
+        interpolateFunc.avatar=function (pos_0, pos_1) {
+            var pos_c = Object.create(pos_0);
+            pos_c.x = pos_1.x*c +pos_0.x*(1.-c);
+            pos_c.y = pos_1.y*c +pos_0.y*(1.-c);
+            return pos_c;
+        }
+
 
         var interpolateEntities = function () {
             var entities_c = Object.create(state_0.entities);
@@ -434,10 +443,25 @@ function startup() {
         }
     };
 
+    // Compute the average frame rate of the last 16 frames and write it to the metrics
+    var frameRate = (function(){
+        var frameTime=new Array(16);
+        var frame=0;
+        return {onFrame:function(){
+            var idx=frame++&15;
+            var prevTime = frameTime[idx];
+            var curTime = frameTime[idx]=Date.now();
+            if(prevTime)metrics.fps=Math.floor(16*1000/(curTime-prevTime));
+        }};
+    }())
+
     function renderFrame(curFrameTime) {
+        // Since http://trac.webkit.org/changeset/131131 jan-2013 the provided time is not consistent with Date.now().
+        // I don't need a precision counter.
+        curFrameTime=Date.now();
         if (sharedState.state !== "play") return;
         window.requestAnimationFrame(renderFrame);
-
+        frameRate.onFrame();
         // Compute the time since the biginning of the rould from the client point of view
         var clientRoundTime = curFrameTime - localState.startTime;
         // Interpolate
@@ -485,7 +509,7 @@ function startup() {
                 updatePlayerSlots();
                 localState = {
                     players:[],
-                    snapshots:new Interpolator(),
+                    snapshots:new InterpolationSystem(),
                     prediction:new PredictionSystem(),
                     // The round elapsed time is Date.now()-startTime.
                     // When the client enters the "play" state as the round begins, newState.t is 0.
