@@ -1,0 +1,3 @@
+  * [Latency Compensating Methods in Client/Server In-game Protocol Design and Optimization](https://developer.valvesoftware.com/wiki/Latency_Compensating_Methods_in_Client/Server_In-game_Protocol_Design_and_Optimization), Yahn W. Bernier, 2001
+  * [Quake Engine code review](http://fabiensanglard.net/quakeSource/index.php), Fabien Sanglard, 2010
+  * http://gafferongames.com/networking-for-game-programmers/
