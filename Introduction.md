@@ -38,33 +38,40 @@ On the other side, the server process inputs as they arrives, and periodically (
   * **delta**: compressed new world state. Given that walls position and state never change it is not necessary to send everything in every message. Entities whose the position and state is the same as in the previous sent snapshot are omitted. This part of the [delta compression](DeltaCompression.md) introduced later on.
   * **temporaryEntities**: special entities like flame blast, exploding crated or sound effect. These entities are not involved in the simulation, they are not interpolated, and their life time can be shorter than the snapshot period without risking not to be transmitted to the client.
 
-### Are things that simple? ###
+### Are things that simple?
 The client can be considered as a terminal that render the world according to the update received by the server, and forwards the input to the server. And the server simply run the game simulation, taking into account received inputs and publishing shapshot periodically. Unfortunately there is a network in-between, that is limited in bandwidth and that slow down the information propagation.
 
-#### Need to reduce the turnaround times ####
+#### Need to reduce the turnaround times
+
 The typical network latency on an LAN is below 6 ms, and below 12 ms on WLAN. This latency induces a lack of responsiveness if not handled properly.
+
 Here is the sequence of event that occurs between a keystroke and the feedback to the user when no client side prediction is done:
+
   1. A key is pressed by the user
-  1. A new frame is rendered (occurs every 17ms)
+  2. A new frame is rendered (occurs every 17ms)
     * the key press is detected
     * a message is sent by the client to the server
-  1. The message is received by the server
+  3. The message is received by the server
     * the game state is updated consequently
-  1. The server send a snapshot of the world state to the clients (occurs every 60ms)
-  1. The client receives the snapshot and updates the local state
-  1. A new frame is rendered (occurs every 17ms)
+  4. The server send a snapshot of the world state to the clients (occurs every 60ms)
+  5. The client receives the snapshot and updates the local state
+  6. A new frame is rendered (occurs every 17ms)
+
+```
+The average latency is: 8.5+6+30+6+8.5 = 59ms
+The worst cast latency is: 17+6+60+6+17 = 106ms
 ```
 
-The average latency is: 8.5+6+30+6+8.5 = 59ms
-The worst cast latency is: 17+6+60+6+17 = 106ms```
-When everything is put together, the delay within the input and the visual feedback can goes up to 106ms. The player have to wait the much befor to see its changes applied to it avatar. 106 ms is not that much but it is clearly perceptible, and makes it difficult to run and the gameplay becomes sticky.<br>
-<a href='Prediction.md'>Client side prediction</a> is intended to minimize the perceived reactivity of the player controlled entities.</li></ul>
+When everything is put together, the delay within the input and the visual feedback can goes up to 106ms. The player have to wait the much befor to see its changes applied to it avatar. 106 ms is not that much but it is clearly perceptible, and makes it difficult to run and the gameplay becomes sticky.
+[Client side prediction](Prediction.md) is intended to minimize the perceived reactivity of the player controlled entities.
 
-<h4>Need to smoothen the world animation ####
-The server published the world state every 60ms whereas frames are rendered every 16ms. There is less server updates then rendered frames, consequently a given game state is used by four consecutive frame. This situation makes the animation choppy and the visual feedback suffers the network jittering if any.<br>
-<a href='Interpolation.md'>Interpolation</a> is intended to produce smooth animations in-between the server snapshots.<br>
-<br>
-<h3>Are things that complicated?</h3>
+#### Need to smoothen the world animation
+
+The server published the world state every 60ms whereas frames are rendered every 16ms. There is less server updates then rendered frames, consequently a given game state is used by four consecutive frame. This situation makes the animation choppy and the visual feedback suffers the network jittering if any.
+
+<a href='Interpolation.md'>Interpolation</a> is intended to produce smooth animations in-between the server snapshots.
+
+### Are things that complicated?
 Finally, most of the network code is located in the client. The server is two times smaller than the client.<br>
 <br>
 <ul><li><b>Client is made of ~800 LOC</b>
