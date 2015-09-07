@@ -1,6 +1,8 @@
 # nuclear-bomberman
 **Automatically exported from https://code.google.com/p/nuclear-bomberman/**
 
+![](https://code.google.com/p/nuclear-bomberman/logo?cct=1352560047)
+
 ## Multiplayer arcade in a web browser written in javascript
 ... it is well suited for lan party idle times.
 Ten players can play at the same time and no installation required. The game-play is straight forward: drop a bomb, run like hell and watch you back.
